@@ -5,15 +5,15 @@ from tornado                import options
 from tornado_swagger.setup  import setup_swagger
 from Handlers.players import PlayersH
 from Handlers.players import PlayersDetailsH
-import init_db
+from DataBase import db
 import signal
 import sys
 
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
     try:
-        init_db.conn.commit()
-        init_db.conn.close()
+        db.conn.commit()
+        db.conn.close()
     except:
         print('Database is perhaps already closed.')
     finally:
@@ -24,7 +24,7 @@ def signal_handler(sig, frame):
 class Application(Application):
     _routes = [
         url("/players", PlayersH, name= "Players Handler"),
-        url("/players/([0-9]+)", PlayersDetailsH, name= "Players Details Handler"),
+        url(r"/players/([^/]+)", PlayersDetailsH, name= "Players Details Handler"),  
         ]
     def __init__(self):
         settings = {
@@ -42,7 +42,7 @@ class Application(Application):
 if __name__ == "__main__":
     options.define("port", default="8000", help="Port to listen on")
     options.parse_command_line()
-    init_db.init() # Init Database
+    db.init() # Init Database
     app = Application()
     app.listen(port=8000)
     signal.signal(signal.SIGINT, signal_handler)
