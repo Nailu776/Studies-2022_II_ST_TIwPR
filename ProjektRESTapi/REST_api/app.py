@@ -5,6 +5,7 @@ from tornado                import options
 from tornado_swagger.setup  import setup_swagger
 from Handlers.players import PlayersH
 from Handlers.players import PlayersDetailsH
+#from Handlers.test_players import PlayersDetailsH
 from DataBase import db
 import signal
 import sys

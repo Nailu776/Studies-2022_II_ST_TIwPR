@@ -99,24 +99,36 @@ class PlayersDetailsH(BaseHandler):
       tags:
         - Players
       summary: 
+          Get players from the ranking.
+          OR
           Get single player details by nick.
-      description: 
+      description: >
+          
+          This HTTP method is used to get a list of players 
+          sorted by the points they have earned in their games.
+            
           This HTTP method is used to get the player details 
           by nick of a specific player.
       operationId: getPlayer
       parameters:
-        - name: nick
-          in: path
-          description: Nick of player to get.
-          required: true
+        - in: query
+          name: nick
           schema:
             type: string
+          required: false
+          description: Nick of player to get.
+          explode: true
+          
       responses:
           "200":
-            description: 
+            description:
+              The ranking list successfully geted. 
+              OR
               Specific player successfully geted.
           "304":
             description: 
+               The ranking list has not been modified since the last get. 
+               OR
                Specific player has not been modified since the last get.
           "422":
             description: Wrong Nick.
@@ -136,8 +148,25 @@ class PlayersDetailsH(BaseHandler):
         response['Player: '] = buildPlayerJSON_db(dbRecord)
         self.write(response)
         return
-    #else: Nick is missing or wrong err.
-    raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) # 422 Error Code
+      else: # Nick is missing or wrong err.
+        raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) # 422 Error Code
+    else:
+      self.set_etag_header()
+      if self.check_etag_header():
+        self.set_status(304) # 304 HTTP Response CODE
+        return
+      else:
+        DataBase.db.cursor.execute(
+          DataBase.queries.get_players_query)
+        records = DataBase.db.cursor.fetchall()
+        players_table = []
+        for dbRecord in records:
+            players_table.append(buildPlayerJSON_db(dbRecord))
+        response = {}
+        response['Response: '] = 'The ranking list successfully geted'
+        response['Players: '] = players_table
+        self.write(response)
+
   def delete(self, nick=None):
     """
       Description end-point
@@ -272,12 +301,6 @@ class PlayersDetailsH(BaseHandler):
           required: true
           schema:
             type: string     
-        # - name: ETag
-        #   in: header
-        #   description: Used to prevent Lost Update Problem
-        #   required: true
-        #   schema:
-        #     type: string 
       requestBody:
         description: Update a specific player.
         content:
