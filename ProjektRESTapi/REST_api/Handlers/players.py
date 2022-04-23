@@ -1,11 +1,10 @@
 from http import HTTPStatus
 from tornado.web            import HTTPError
-import Models.models
 import json
 from .errorHandler import BaseHandler, errData
 import tornado
 import DataBase
-players = []
+import Models.models # Schemas for Swagger
 # Players Handler 
 # ~/players 
 class PlayersH(BaseHandler):
@@ -90,7 +89,6 @@ class PlayersH(BaseHandler):
     response['Response: '] = 'New player created.'
     response['Player: '] = buildPlayerJSON_db(dbRecord)
     self.write(response)
-
 # Players Details Handler
 # ~/players/{u_name} 
 class PlayersDetailsH(BaseHandler):
@@ -306,7 +304,7 @@ class PlayersDetailsH(BaseHandler):
                 DataBase.queries.put_player_query, query_data)
             DataBase.db.conn.commit()
             data = {}
-            data['Player before update:'] = dbRecord
+            data['Player before update:'] = buildPlayerJSON_db(dbRecord)
             json_data['id'] = dbRecord[0]
             json_data['nick'] = dbRecord[1]
             player_json = buildPlayerJSON(json_data)
@@ -315,8 +313,6 @@ class PlayersDetailsH(BaseHandler):
             return
     #else: Nick is missing or wrong err.
     raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) # 422 Error Code
-
-
 def getPlayerFromDatabaseByNick(nick):
   DataBase.db.cursor.execute(DataBase.queries.get_player_query, [nick])
   return DataBase.db.cursor.fetchone()
