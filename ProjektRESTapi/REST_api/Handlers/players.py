@@ -1,13 +1,44 @@
+from asyncio.windows_events import NULL
 from http import HTTPStatus
+from lib2to3.pgen2.token import EQUAL
 from tornado.web            import HTTPError
 import json
 from .errorHandler import BaseHandler, errData
 import tornado
 import DataBase
 import Models.models # Schemas for Swagger
+from typing import   Optional
+import hashlib
+
+global_etag_header= { 'etag': ''}
+
 # Players Handler 
 # ~/players 
 class PlayersH(BaseHandler):
+  def compute_etag(self):
+    return NULL
+  def compute_my_etag(self) -> Optional[str]:
+    """Computes the etag header to be used for this request.
+
+    By default uses a hash of the content written so far.
+
+    May be overridden to provide custom etag implementations,
+    or may return None to disable tornado's default etag support.
+    """
+    hasher = hashlib.sha1()
+    for part in self._write_buffer:
+        hasher.update(part)
+    return '"%s"' % hasher.hexdigest()
+  def set_etag_header(self) -> None:
+    """Sets the response's Etag header using ``self.compute_etag()``.
+
+    Note: no header will be set if ``compute_etag()`` returns ``None``.
+
+    This method is called automatically when the request is finished.
+    """
+    etag = self.compute_my_etag()
+    if etag is not None:
+        self.set_header("Etag", etag)
   def get(self):
     """
       Description end-point
@@ -20,6 +51,13 @@ class PlayersH(BaseHandler):
           This HTTP method is used to get a list of players 
           sorted by the points they have earned in their games.
       operationId: getPlayers
+      parameters:
+        - name: If-None-Match
+          in: header
+          required: false
+          schema:
+            type: string
+            default: '*'
       responses:
           "200":
               description: 
@@ -33,21 +71,25 @@ class PlayersH(BaseHandler):
             description: Not found
     """
     #EODescription end-point  
-    self.set_etag_header()
-    if self.check_etag_header():
-      self.set_status(304) # 304 HTTP Response CODE
-      return
+    if self.request.headers.get("If-None-Match")=='*':
+      self.set_etag_header()
+      global_etag_header['etag'] = self._headers.get("Etag")
     else:
-      DataBase.db.cursor.execute(
-        DataBase.queries.get_players_query)
-      records = DataBase.db.cursor.fetchall()
-      players_table = []
-      for dbRecord in records:
-          players_table.append(buildPlayerJSON_db(dbRecord))
-      response = {}
-      response['Response: '] = 'The ranking list successfully geted'
-      response['Players: '] = players_table
-      self.write(response)
+      self.set_etag_header()
+      global_etag_header['etag'] = self._headers.get("Etag")
+      if self.check_etag_header():
+        self.set_status(HTTPStatus.NOT_MODIFIED)
+        return
+    DataBase.db.cursor.execute(
+      DataBase.queries.get_players_query)
+    records = DataBase.db.cursor.fetchall()
+    players_table = []
+    for dbRecord in records:
+        players_table.append(buildPlayerJSON_db(dbRecord))
+    response = {}
+    response['Response: '] = 'The ranking list successfully geted'
+    response['Players: '] = players_table
+    self.write(response)
   def post(self):
     """
       Description end-point
@@ -92,6 +134,30 @@ class PlayersH(BaseHandler):
 # Players Details Handler
 # ~/players/{u_name} 
 class PlayersDetailsH(BaseHandler):
+  def compute_etag(self):
+      return NULL
+  def compute_my_etag(self) -> Optional[str]:
+    """Computes the etag header to be used for this request.
+
+    By default uses a hash of the content written so far.
+
+    May be overridden to provide custom etag implementations,
+    or may return None to disable tornado's default etag support.
+    """
+    hasher = hashlib.sha1()
+    for part in self._write_buffer:
+        hasher.update(part)
+    return '"%s"' % hasher.hexdigest()
+  def set_etag_header(self) -> None:
+    """Sets the response's Etag header using ``self.compute_etag()``.
+
+    Note: no header will be set if ``compute_etag()`` returns ``None``.
+
+    This method is called automatically when the request is finished.
+    """
+    etag = self.compute_my_etag()
+    if etag is not None:
+        self.set_header("Etag", etag)
   def get(self, nick=None):
     """
       Description end-point
@@ -104,6 +170,11 @@ class PlayersDetailsH(BaseHandler):
           This HTTP method is used to get the player details 
           by nick of a specific player.
       operationId: getPlayer
+      parameters:
+        - name: 'If-None-Match'
+          in: header
+          required: false
+          type: string
       parameters:
         - name: nick
           in: path
@@ -128,6 +199,7 @@ class PlayersDetailsH(BaseHandler):
             description: Invalid input
    """
     #EODescription end-point
+    self.compute_etag()
     if nick:
       dbRecord = getPlayerFromDatabaseByNick(nick)
       if dbRecord:
@@ -194,7 +266,13 @@ class PlayersDetailsH(BaseHandler):
           description: Nick of player to get.
           required: true
           schema:
-            type: string     
+            type: string   
+        - name: If-Match
+          in: header
+          description: when this is an update to an entry, then this field needs to be present
+          schema:
+            type: string
+            pattern: "[0-9]*"  
       requestBody:
         description: Update a specific player.
         content:
@@ -214,7 +292,22 @@ class PlayersDetailsH(BaseHandler):
           '405':
             description: Invalid input
     """
-    #EODescription end-point   
+    #EODescription end-point 
+    
+     
+    if self.request.headers.get("If-None-Match")=='*':
+      self.set_etag_header()
+    else:
+      self.set_etag_header()
+      print("test1")
+      print(global_etag_header['etag'])
+      print(self._headers.get("Etag"))
+      
+      if global_etag_header['etag'] == self._headers.get("Etag"):
+        print("testcomp")
+        self.set_status(HTTPStatus.NOT_MODIFIED)
+        print("test2")
+        return  
     if nick:
       DataBase.db.cursor.execute(
         DataBase.queries.get_player_query, [nick])
@@ -271,13 +364,13 @@ class PlayersDetailsH(BaseHandler):
           description: Nick of player to get.
           required: true
           schema:
-            type: string     
-        # - name: ETag
-        #   in: header
-        #   description: Used to prevent Lost Update Problem
-        #   required: true
-        #   schema:
-        #     type: string 
+            type: string  
+        - name: If-Match
+          in: header
+          description: Used to prevent Lost Update Problem
+          required: false
+          schema:
+            type: string 
       requestBody:
         description: Update a specific player.
         content:
