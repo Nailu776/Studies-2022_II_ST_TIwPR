@@ -3,12 +3,13 @@ from tornado.web            import Application, RequestHandler, url, ErrorHandle
 from tornado.ioloop         import IOLoop
 from tornado                import options 
 from tornado_swagger.setup  import setup_swagger
-from Handlers.players import PlayersH
-from Handlers.players import PlayersDetailsH
+from Handlers.players import PlayersH, PlayersDetailsH
 #from Handlers.test_players import PlayersDetailsH
 from DataBase import db
 import signal
 import sys
+
+from Handlers.messages import MessagesH, MessagesGetterH, MessagesDetailsH 
 
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
@@ -25,7 +26,13 @@ def signal_handler(sig, frame):
 class Application(Application):
     _routes = [
         url("/players", PlayersH, name= "Players Handler"),
-        url(r"/players/([^/]+)?", PlayersDetailsH, name= "Players Details Handler"),  
+        url(r"/players/([^/]+)", PlayersDetailsH, 
+            name= "Players Details Handler"),  
+        url("/messages",  MessagesH, name= "Messages Handler"),
+        url(r"/messages/([^/]+),([^/]+)", MessagesGetterH, 
+            name= "Messages Getting Handler"), 
+        url(r"/messages/([^/]+),([^/]+)/([^/]+)", MessagesDetailsH, 
+            name= "Messages Details Handler"), 
         ]
     def __init__(self):
         settings = {

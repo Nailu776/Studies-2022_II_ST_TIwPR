@@ -1,5 +1,4 @@
 from tornado_swagger.components import components
-
 @components.schemas.register
 class PlayerModel(object):
     """

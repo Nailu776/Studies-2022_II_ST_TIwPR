@@ -16,7 +16,7 @@ class PlayersH(BaseHandler):
   # Check if modified
   def check_modified_resp(self):
     # Check etag: if equals then response is not modified
-    self.set_etag_header()
+    self.set_my_etag_header()
     if self.check_etag_header():
       # Vanish response
       self._write_buffer = []
@@ -40,7 +40,7 @@ class PlayersH(BaseHandler):
       for part in self._write_buffer:
           hasher.update(part)
       return '"%s"' % hasher.hexdigest()
-  def set_etag_header(self) -> None:
+  def set_my_etag_header(self) -> None:
       """Sets the response's Etag header using ``self.compute_etag()``.
 
       Note: no header will be set if ``compute_etag()`` returns ``None``.
@@ -87,8 +87,8 @@ class PlayersH(BaseHandler):
     for dbRecord in records:
         players_table.append(buildPlayerJSON_db(dbRecord))
     response = {}
-    response['Response: '] = 'The ranking list successfully geted'
-    response['Players: '] = players_table
+    response['Response'] = 'The ranking list successfully geted'
+    response['Players'] = players_table
     self.write(response)
     self.check_modified_resp()
   def post(self):
@@ -122,26 +122,26 @@ class PlayersH(BaseHandler):
       DataBase.db.cursor.execute(
         DataBase.queries.add_player_query,
         [request_data['nick']])
-    except:
-      errData['Cause'] = 'A player with this nick perhaps already exists.'
-      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY)
-    else:
       DataBase.db.conn.commit()
       # Check if player is added
       DataBase.db.cursor.execute(
         DataBase.queries.get_player_query, 
         [request_data['nick']])
       dbRecord = DataBase.db.cursor.fetchone()
+    except:
+      errData['Cause'] = 'A player with this nick perhaps already exists.'
+      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY)
+    else:
       response = {}
-      response['Response: '] = 'New player created.'
-      response['Player: '] = buildPlayerJSON_db(dbRecord)
+      response['Response'] = 'New player created.'
+      response['Player'] = buildPlayerJSON_db(dbRecord)
       self.write(response)
 # Players Details Handler
 # ~/players/{u_name} 
 class PlayersDetailsH(BaseHandler):
   # Check if etag match
   def check_if_match(self) -> bool:
-    self.set_etag_header()
+    self.set_my_etag_header()
     # Vanish get player response
     self._write_buffer=[]
     # Check if etag in request exists
@@ -165,7 +165,7 @@ class PlayersDetailsH(BaseHandler):
   # Check if modified
   def check_modified_resp(self):
     # Check etag: if equals then response is not modified
-    self.set_etag_header()
+    self.set_my_etag_header()
     if self.check_etag_header():
       # Vanish response
       self._write_buffer = []
@@ -189,7 +189,7 @@ class PlayersDetailsH(BaseHandler):
       for part in self._write_buffer:
           hasher.update(part)
       return '"%s"' % hasher.hexdigest()
-  def set_etag_header(self) -> None:
+  def set_my_etag_header(self) -> None:
       """Sets the response's Etag header using ``self.compute_etag()``.
 
       Note: no header will be set if ``compute_etag()`` returns ``None``.
@@ -242,8 +242,8 @@ class PlayersDetailsH(BaseHandler):
       dbRecord = getPlayerFromDatabaseByNick(nick) 
       if dbRecord:
         response = {}
-        response['Response: '] = 'Specific player successfully geted.'
-        response['Player: '] = buildPlayerJSON_db(dbRecord)
+        response['Response'] = 'Specific player successfully geted.'
+        response['Player'] = buildPlayerJSON_db(dbRecord)
         self.write(response)
         self.check_modified_resp()
       else: # Nick is wrong err.   
@@ -297,8 +297,8 @@ class PlayersDetailsH(BaseHandler):
       if dbRecord:
         # Check precondition.
         response = {}
-        response['Response: '] = 'Specific player successfully geted.'
-        response['Player: '] = buildPlayerJSON_db(dbRecord)
+        response['Response'] = 'Specific player successfully geted.'
+        response['Player'] = buildPlayerJSON_db(dbRecord)
         self.write(response)
         if not self.check_if_match():  
           # Error
@@ -380,8 +380,8 @@ class PlayersDetailsH(BaseHandler):
       if dbRecord:
         # Check precondition.
         response = {}
-        response['Response: '] = 'Specific player successfully geted.'
-        response['Player: '] = buildPlayerJSON_db(dbRecord)
+        response['Response'] = 'Specific player successfully geted.'
+        response['Player'] = buildPlayerJSON_db(dbRecord)
         self.write(response)
         if not self.check_if_match():  
           # Error
@@ -400,38 +400,38 @@ class PlayersDetailsH(BaseHandler):
             query_data = (int(json_data['points_record']), str(nick))
             DataBase.db.cursor.execute(
               DataBase.queries.patch_player_record_query, query_data)
-            data['Player points_record updated:'] = json_data['points_record']
+            data['Player points_record updated'] = json_data['points_record']
             indents += 1
           # number of msg sendes update
           if 'no_msg_sended' in json_data:
             query_data = (int(json_data['no_msg_sended']), str(nick))
             DataBase.db.cursor.execute(
               DataBase.queries.patch_player_sended_query, query_data)
-            data['Player no_msg_sended updated:'] = json_data['no_msg_sended']
+            data['Player no_msg_sended updated'] = json_data['no_msg_sended']
             indents += 1
           # number of msg received update
           if 'no_msg_received' in json_data:
             query_data = (int(json_data['no_msg_received']), str(nick))
             DataBase.db.cursor.execute(
               DataBase.queries.patch_player_received_query, query_data)
-            data['Player no_msg_received updated:'] = json_data['no_msg_received']
+            data['Player no_msg_received updated'] = json_data['no_msg_received']
             indents += 1
           if indents == 0:
-            data['Changes '] = 'Nothing'
+            data['Changes'] = 'Nothing'
             indents += 1
           else:
             DataBase.db.conn.commit()
-          # Calculate new etag 
-          DataBase.db.cursor.execute(
-            DataBase.queries.get_player_query, [nick])
-          dbRecord = DataBase.db.cursor.fetchone()
-          response = {}
-          response['Response: '] = 'Specific player successfully geted.'
-          response['Player: '] = buildPlayerJSON_db(dbRecord)
-          self.write(response)
-          self.set_etag_header()
-          # Vanish response
-          self._write_buffer = []
+            # Calculate new etag 
+            DataBase.db.cursor.execute(
+              DataBase.queries.get_player_query, [nick])
+            dbRecord = DataBase.db.cursor.fetchone()
+            response = {}
+            response['Response'] = 'Specific player successfully geted.'
+            response['Player'] = buildPlayerJSON_db(dbRecord)
+            self.write(response)
+            self.set_my_etag_header()
+            # Vanish response
+            self._write_buffer = []
           self.write(json.dumps(data, sort_keys=True, indent=indents))
           return
       # Nick is wrong err.  
@@ -442,7 +442,7 @@ class PlayersDetailsH(BaseHandler):
     else:
       errData['Cause'] = 'Nick is missing.'
       raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) # 422 Error Code
-  def put(self, nick=None):
+  def put(self, nick):
     """
       Description end-point
       ---
@@ -507,13 +507,25 @@ class PlayersDetailsH(BaseHandler):
         else:
           # Precondition passed.
           json_data = json.loads(self.request.body.decode("utf-8"))
-          if len(json_data) == 3: # Check if got 3 arguments = records, no_msg_received and no_msg_sended
+          if len(json_data) == 3: 
+            # todo Check if got 3 arguments = records, no_msg_received and no_msg_sended
             if "points_record" and "no_msg_sended" and "no_msg_received" in json_data:
               query_data = (dbRecord[0], dbRecord[1], int(json_data['points_record']),
                 int(json_data['no_msg_sended']), int(json_data['no_msg_received']), str(nick))
               DataBase.db.cursor.execute(
                   DataBase.queries.put_player_query, query_data)
               DataBase.db.conn.commit()
+              # Calculate new etag 
+              DataBase.db.cursor.execute(
+                DataBase.queries.get_player_query, [nick])
+              dbRecord = DataBase.db.cursor.fetchone()
+              response = {}
+              response['Response: '] = 'Specific player successfully geted.'
+              response['Player: '] = buildPlayerJSON_db(dbRecord)
+              self.write(response)
+              self.set_my_etag_header()
+              # Vanish response
+              self._write_buffer = []
               data = {}
               data['Player before update:'] = buildPlayerJSON_db(dbRecord)
               json_data['id'] = dbRecord[0]
