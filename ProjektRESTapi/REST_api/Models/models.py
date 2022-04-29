@@ -25,7 +25,26 @@ class PlayerModel(object):
             format: int64
             default: 0
     """
-
+@components.schemas.register
+class PlayerPatchSchema(object):
+    """
+    ---
+    type: object
+    description: Player patch schema
+    properties:
+        points_record:
+            type: integer
+            format: int64
+            default: 0
+        no_msg_sended:
+            type: integer
+            format: int64
+            default: 0
+        no_msg_received:
+            type: integer
+            format: int64
+            default: 0
+    """
 @components.schemas.register
 class PlayerUpdateSchema(object):
     """

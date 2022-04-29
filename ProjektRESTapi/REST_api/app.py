@@ -25,7 +25,7 @@ def signal_handler(sig, frame):
 class Application(Application):
     _routes = [
         url("/players", PlayersH, name= "Players Handler"),
-        url(r"/players/([^/]+)", PlayersDetailsH, name= "Players Details Handler"),  
+        url(r"/players/([^/]+)?", PlayersDetailsH, name= "Players Details Handler"),  
         ]
     def __init__(self):
         settings = {
