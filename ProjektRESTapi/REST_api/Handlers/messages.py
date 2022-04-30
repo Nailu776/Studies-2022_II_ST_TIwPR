@@ -1,10 +1,8 @@
 from http import HTTPStatus
 import http.client
 from tornado.web            import HTTPError
-from tornado.escape         import utf8
 import json
 from .errorHandler import BaseHandler, errData
-import tornado
 import DataBase
 import Schemas.MessageSchemas
 import hashlib

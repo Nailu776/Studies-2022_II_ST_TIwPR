@@ -1,0 +1,6 @@
+#TODO 
+Relacje...
+Nie mam adnotacji many to many one to many etc więc będę musiał ręcznie usuwać 
+wiadomości np gracza, który został skasowany.
+
+https://www.sqlitetutorial.net/sqlite-foreign-key/

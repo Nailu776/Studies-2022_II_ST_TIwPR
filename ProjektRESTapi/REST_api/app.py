@@ -5,7 +5,8 @@ from tornado                import options
 from tornado_swagger.setup  import setup_swagger
 from Handlers.players import PlayersH, PlayersDetailsH
 from Handlers.messages import MessagesH, MessagesGetterH, MessagesDetailsH 
-#from Handlers.test_players import PlayersDetailsH
+from Handlers.games_hists import GamesHistsH
+from Handlers.player_merges import PlayerMergesH
 from DataBase import db
 import signal
 import sys
@@ -24,14 +25,20 @@ def signal_handler(sig, frame):
 
 class Application(Application):
     _routes = [
-        url("/players", PlayersH, name= "Players Handler"),
+        url("/players", PlayersH, 
+            name= "Players Handler"),
         url(r"/players/([^/]+)", PlayersDetailsH, 
             name= "Players Details Handler"),  
-        url("/messages",  MessagesH, name= "Messages Handler"),
+        url("/messages",  MessagesH, 
+            name= "Messages Handler"),
         url(r"/messages/([^/]+),([^/]+)", MessagesGetterH, 
             name= "Messages Getting Handler"), 
         url(r"/messages/([^/]+),([^/]+)/([^/]+)", MessagesDetailsH, 
             name= "Messages Details Handler"), 
+        url(r"/games_hists/([^/]+)?", GamesHistsH, 
+            name= "Games Histories Handler"),  
+        url(r"/player_merges/([^/]+)?", PlayerMergesH, 
+            name= "Player Merges Handler"),
         ]
     def __init__(self):
         settings = {

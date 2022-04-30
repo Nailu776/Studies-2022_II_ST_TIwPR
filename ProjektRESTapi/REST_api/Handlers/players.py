@@ -3,7 +3,8 @@ import http.client
 from tornado.web            import HTTPError
 import json
 from .errorHandler import BaseHandler, errData
-import tornado
+import tornado 
+#TODO SWAP TORNADO JSON ESCAPE DECODE NA json.loads(self.request.body.decode("utf-8"))
 import DataBase
 import hashlib
 from asyncio.windows_events import NULL
