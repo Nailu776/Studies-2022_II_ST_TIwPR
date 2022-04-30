@@ -1,15 +1,14 @@
-import this                 #__Easter Egg__: The Zen of Python, by Tim Peters 
-from tornado.web            import Application, RequestHandler, url, ErrorHandler, HTTPError
+# import this                 #__Easter Egg__: The Zen of Python, by Tim Peters 
+from tornado.web            import Application, url, ErrorHandler
 from tornado.ioloop         import IOLoop
 from tornado                import options 
 from tornado_swagger.setup  import setup_swagger
 from Handlers.players import PlayersH, PlayersDetailsH
+from Handlers.messages import MessagesH, MessagesGetterH, MessagesDetailsH 
 #from Handlers.test_players import PlayersDetailsH
 from DataBase import db
 import signal
 import sys
-
-from Handlers.messages import MessagesH, MessagesGetterH, MessagesDetailsH 
 
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
@@ -50,7 +49,8 @@ class Application(Application):
 if __name__ == "__main__":
     options.define("port", default="8000", help="Port to listen on")
     options.parse_command_line()
-    db.init() # Init Database
+    # Init Database
+    db.init() 
     app = Application()
     app.listen(port=8000)
     signal.signal(signal.SIGINT, signal_handler)

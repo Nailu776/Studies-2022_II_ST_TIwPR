@@ -1,15 +1,15 @@
 from http import HTTPStatus
 import http.client
 from tornado.web            import HTTPError
-from tornado.escape         import utf8
 import json
 from .errorHandler import BaseHandler, errData
 import tornado
 import DataBase
-import Models.models # Schemas for Swagger
 import hashlib
 from asyncio.windows_events import NULL
 from typing import   Optional
+# Schemas for Swagger
+import Schemas.PlayerSchemas 
 # Players Handler 
 # ~/players 
 class PlayersH(BaseHandler):
@@ -20,6 +20,7 @@ class PlayersH(BaseHandler):
     if self.check_etag_header():
       # Vanish response
       self._write_buffer = []
+      # Error Code 304 Not Modified 
       self.set_status(HTTPStatus.NOT_MODIFIED)
       return
     else:
@@ -87,7 +88,7 @@ class PlayersH(BaseHandler):
     for dbRecord in records:
         players_table.append(buildPlayerJSON_db(dbRecord))
     response = {}
-    response['Response'] = 'The ranking list successfully geted'
+    response['Response'] = 'The ranking list successfully geted.'
     response['Players'] = players_table
     self.write(response)
     self.check_modified_resp()
@@ -146,7 +147,8 @@ class PlayersDetailsH(BaseHandler):
     self._write_buffer=[]
     # Check if etag in request exists
     req_etag = self.request.headers.get("If-Match", "")
-    # TODO check if it's legal to do If-None-Match = If-Match
+    # TODO check if it's legal to do If-None-Match = If-Match ... it is 
+    # (check check_etag_header)
     self.request.headers['If-None-Match'] = req_etag
     if req_etag:
       # Check etag: if equals then entity is not modified
@@ -169,6 +171,7 @@ class PlayersDetailsH(BaseHandler):
     if self.check_etag_header():
       # Vanish response
       self._write_buffer = []
+      # Error Code 304 Not Modified 
       self.set_status(HTTPStatus.NOT_MODIFIED)
       return
     else:
@@ -246,12 +249,16 @@ class PlayersDetailsH(BaseHandler):
         response['Player'] = buildPlayerJSON_db(dbRecord)
         self.write(response)
         self.check_modified_resp()
-      else: # Nick is wrong err.   
+      else: 
+        # Nick is wrong err.   
         errData['Cause'] = 'Nick is wrong.'
-        raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) # 422 Error Code
-    else: # Nick is missing err.
+        # 422 Error Code
+        raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
+    else: 
+      # Nick is missing err.
       errData['Cause'] = 'Nick is missing.'
-      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) # 422 Error Code
+      # 422 Error Code
+      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
   def delete(self, nick):
     """
       Description end-point
@@ -286,6 +293,10 @@ class PlayersDetailsH(BaseHandler):
             description: Missing nick.
           "404":
             description: Player not found.
+          "412":
+            description: Precondition Failed. Entity changed.
+          "428":
+            description: Precondition Required. Etag is missing.
           "500":
             description: 
               Server did not delete player successfully.  
@@ -317,15 +328,17 @@ class PlayersDetailsH(BaseHandler):
           checkPlayerDeleted(nick)
           self._headers['Content-Type'] = "text/html; charset=utf-8"
           self.write("Player with nick: " + nick + " is successfully delted.")
-          return
-      # Nick is wrong err.  
-      else:  
+          return 
+      else: 
+        # Nick is wrong err.  
         errData['Cause'] = 'Player not found.'
-        raise HTTPError(HTTPStatus.NOT_FOUND) # 422 Error Code
-    # Nick is missing err.
+         # 404 Error Code
+        raise HTTPError(HTTPStatus.NOT_FOUND)
     else:
+      # Nick is missing err.
       errData['Cause'] = 'Nick is missing.'
-      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) # 422 Error Code
+      # 422 Error Code
+      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
   def patch(self, nick):
     """
       Description end-point
@@ -358,7 +371,7 @@ class PlayersDetailsH(BaseHandler):
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PlayerPatchSchema'
+              $ref: '#/components/schemas/PlayerUpdateSchema'
       responses:
           "200":
               description: 
@@ -367,16 +380,16 @@ class PlayersDetailsH(BaseHandler):
             description: Nick is missing.
           "404":
             description: Nick is wrong.
+          "412":
+            description: Precondition Failed. Entity changed.
+          "417":
+            description: Something in request body is not in correct format.
           "428":
             description: Precondition Required. Etag is missing.
-          "412":
-            description: Precondition Failed. Entity is modified.
     """
     #EODescription end-point 
     if nick:
-      DataBase.db.cursor.execute(
-        DataBase.queries.get_player_query, [nick])
-      dbRecord = DataBase.db.cursor.fetchone()
+      dbRecord = getPlayerFromDatabaseByNick(nick)
       if dbRecord:
         # Check precondition.
         response = {}
@@ -394,54 +407,59 @@ class PlayersDetailsH(BaseHandler):
           # Precondition passed.
           data = {}
           indents = 0
-          json_data = json.loads(self.request.body.decode("utf-8"))
-          # points_record update
-          if 'points_record' in json_data:
-            query_data = (int(json_data['points_record']), str(nick))
-            DataBase.db.cursor.execute(
-              DataBase.queries.patch_player_record_query, query_data)
-            data['Player points_record updated'] = json_data['points_record']
-            indents += 1
-          # number of msg sendes update
-          if 'no_msg_sended' in json_data:
-            query_data = (int(json_data['no_msg_sended']), str(nick))
-            DataBase.db.cursor.execute(
-              DataBase.queries.patch_player_sended_query, query_data)
-            data['Player no_msg_sended updated'] = json_data['no_msg_sended']
-            indents += 1
-          # number of msg received update
-          if 'no_msg_received' in json_data:
-            query_data = (int(json_data['no_msg_received']), str(nick))
-            DataBase.db.cursor.execute(
-              DataBase.queries.patch_player_received_query, query_data)
-            data['Player no_msg_received updated'] = json_data['no_msg_received']
-            indents += 1
-          if indents == 0:
-            data['Changes'] = 'Nothing'
-            indents += 1
+          try: 
+            json_data = json.loads(self.request.body.decode("utf-8"))
+            # points_record update
+            if 'points_record' in json_data:
+              query_data = (int(json_data['points_record']), str(nick))
+              DataBase.db.cursor.execute(
+                DataBase.queries.patch_player_record_query, query_data)
+              data['Player points_record updated'] = json_data['points_record']
+              indents += 1
+            # number of msg sendes update
+            if 'no_msg_sended' in json_data:
+              query_data = (int(json_data['no_msg_sended']), str(nick))
+              DataBase.db.cursor.execute(
+                DataBase.queries.patch_player_sended_query, query_data)
+              data['Player no_msg_sended updated'] = json_data['no_msg_sended']
+              indents += 1
+            # number of msg received update
+            if 'no_msg_received' in json_data:
+              query_data = (int(json_data['no_msg_received']), str(nick))
+              DataBase.db.cursor.execute(
+                DataBase.queries.patch_player_received_query, query_data)
+              data['Player no_msg_received updated'] = json_data['no_msg_received']
+              indents += 1
+          except:
+            errData['Cause'] = 'Check if request body is correct.'
+            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
           else:
-            DataBase.db.conn.commit()
-            # Calculate new etag 
-            DataBase.db.cursor.execute(
-              DataBase.queries.get_player_query, [nick])
-            dbRecord = DataBase.db.cursor.fetchone()
-            response = {}
-            response['Response'] = 'Specific player successfully geted.'
-            response['Player'] = buildPlayerJSON_db(dbRecord)
-            self.write(response)
-            self.set_my_etag_header()
-            # Vanish response
-            self._write_buffer = []
-          self.write(json.dumps(data, sort_keys=True, indent=indents))
-          return
-      # Nick is wrong err.  
-      else:  
-        errData['Cause'] = 'Player not found.'
-        raise HTTPError(HTTPStatus.NOT_FOUND) # 422 Error Code
-    # Nick is missing err.
+            if indents == 0:
+              data['Changes'] = 'Nothing'
+              indents += 1
+            else:
+              DataBase.db.conn.commit()
+              # Calculate new etag 
+              dbRecord = getPlayerFromDatabaseByNick(nick)
+              response = {}
+              response['Response'] = 'Specific player successfully geted.'
+              response['Player'] = buildPlayerJSON_db(dbRecord)
+              self.write(response)
+              self.set_my_etag_header()
+              # Vanish response
+              self._write_buffer = []
+            self.write(json.dumps(data, sort_keys=True, indent=indents))
+            return  
+      else: 
+        # Nick is wrong err. 
+        errData['Cause'] = 'Player not found. Nick is wrong.'
+         # 404 Error Code
+        raise HTTPError(HTTPStatus.NOT_FOUND)
     else:
+      # Nick is missing err.
       errData['Cause'] = 'Nick is missing.'
-      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) # 422 Error Code
+      # 422 Error Code
+      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
   def put(self, nick):
     """
       Description end-point
@@ -483,10 +501,12 @@ class PlayersDetailsH(BaseHandler):
             description: Nick is missing.
           "404":
             description: Nick is wrong.
+          "412":
+            description: Precondition Failed. Entity changed.
+          "417":
+            description: Something in request body is not in correct format.
           "428":
             description: Precondition Required. Etag is missing.
-          "412":
-            description: Precondition Failed. Entity is modified.
     """
     #EODescription end-point    
     if nick:
@@ -494,8 +514,8 @@ class PlayersDetailsH(BaseHandler):
       if dbRecord:
         # Check precondition.
         response = {}
-        response['Response: '] = 'Specific player successfully geted.'
-        response['Player: '] = buildPlayerJSON_db(dbRecord)
+        response['Response'] = 'Specific player successfully geted.'
+        response['Player'] = buildPlayerJSON_db(dbRecord)
         self.write(response)
         if not self.check_if_match():  
           # Error
@@ -506,42 +526,56 @@ class PlayersDetailsH(BaseHandler):
           return
         else:
           # Precondition passed.
-          json_data = json.loads(self.request.body.decode("utf-8"))
-          if len(json_data) == 3: 
-            # todo Check if got 3 arguments = records, no_msg_received and no_msg_sended
-            if "points_record" and "no_msg_sended" and "no_msg_received" in json_data:
-              query_data = (dbRecord[0], dbRecord[1], int(json_data['points_record']),
-                int(json_data['no_msg_sended']), int(json_data['no_msg_received']), str(nick))
-              DataBase.db.cursor.execute(
-                  DataBase.queries.put_player_query, query_data)
-              DataBase.db.conn.commit()
-              # Calculate new etag 
-              DataBase.db.cursor.execute(
-                DataBase.queries.get_player_query, [nick])
-              dbRecord = DataBase.db.cursor.fetchone()
-              response = {}
-              response['Response: '] = 'Specific player successfully geted.'
-              response['Player: '] = buildPlayerJSON_db(dbRecord)
-              self.write(response)
-              self.set_my_etag_header()
-              # Vanish response
-              self._write_buffer = []
-              data = {}
-              data['Player before update:'] = buildPlayerJSON_db(dbRecord)
-              json_data['id'] = dbRecord[0]
-              json_data['nick'] = dbRecord[1]
-              player_json = buildPlayerJSON(json_data)
-              data['Player after update:'] = player_json
-              self.write(json.dumps(data, sort_keys=True, indent=2))
-              return
-      # Nick is wrong err.  
+          try:
+            request_data = json.loads(self.request.body.decode("utf-8"))
+          except:
+            errData['Cause'] = 'Check if request body is correct.'
+            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+          else:
+            if len(request_data) != 3:
+                errData['Cause'] = 'Request body require 3 elements.'
+                raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+            else:
+                #TODO Check if got 3 arguments = points_record, no_msg_sended and no_msg_received
+                try:
+                  query_data = (dbRecord[0], dbRecord[1], int(request_data['points_record']),
+                    int(request_data['no_msg_sended']), int(request_data['no_msg_received']), str(nick))
+                except:
+                    errData['Cause'] = 'Check if request body is correct.'
+                    raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                else:
+                  DataBase.db.cursor.execute(
+                      DataBase.queries.put_player_query, query_data)
+                  DataBase.db.conn.commit()
+                  # Calculate new etag 
+                  DataBase.db.cursor.execute(
+                    DataBase.queries.get_player_query, [nick])
+                  dbRecord = DataBase.db.cursor.fetchone()
+                  response = {}
+                  response['Response'] = 'Specific player successfully geted.'
+                  response['Player'] = buildPlayerJSON_db(dbRecord)
+                  self.write(response)
+                  self.set_my_etag_header()
+                  # Vanish response
+                  self._write_buffer = []
+                  data = {}
+                  data['Player before update'] = buildPlayerJSON_db(dbRecord)
+                  request_data['id'] = dbRecord[0]
+                  request_data['nick'] = dbRecord[1]
+                  player_json = buildPlayerJSON(request_data)
+                  data['Player after update'] = player_json
+                  self.write(json.dumps(data, sort_keys=True, indent=2))
+                  return  
       else:  
-        errData['Cause'] = 'Player not found.'
-        raise HTTPError(HTTPStatus.NOT_FOUND) # 422 Error Code
-    # Nick is missing err.
+        # Nick is wrong err.
+        errData['Cause'] = 'Player not found. Nick is wrong.'
+        # 404 Error Code
+        raise HTTPError(HTTPStatus.NOT_FOUND) 
     else:
+      # Nick is missing err.
       errData['Cause'] = 'Nick is missing.'
-      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) # 422 Error Code
+       # 422 Error Code
+      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY)
 def getPlayerFromDatabaseByNick(nick):
   DataBase.db.cursor.execute(DataBase.queries.get_player_query, [nick])
   return DataBase.db.cursor.fetchone()
@@ -562,6 +596,7 @@ def buildPlayerJSON(json_data):
   player_json['NO_MSG_SENDED'] = int(json_data['no_msg_received'])
   return player_json 
 def checkPlayerDeleted(nick):
-  if getPlayerFromDatabaseByNick(nick): # If player exists raise error
+  if getPlayerFromDatabaseByNick(nick): 
+    # If player exists raise error
     errData['Cause'] = 'Server did not delete player successfully. Player still exists.'
     raise HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR)

@@ -5,7 +5,7 @@ queryPlayersTable = """CREATE TABLE IF NOT EXISTS PLAYERS (
                 RECORD INT,
                 NO_MSG_RECEIVED INT,
                 NO_MSG_SENDED INT )"""
-get_players_query = '''SELECT * FROM PLAYERS'''
+get_players_query = '''SELECT * FROM PLAYERS ORDER BY RECORD DESC'''
 get_player_query = '''SELECT * FROM PLAYERS WHERE NICK = ? '''
 patch_player_record_query = '''UPDATE PLAYERS SET RECORD = ? WHERE NICK = ?'''
 patch_player_received_query = '''UPDATE PLAYERS SET NO_MSG_RECEIVED = ? WHERE NICK = ?'''
@@ -16,6 +16,7 @@ delete_player_query = '''DELETE FROM PLAYERS WHERE NICK=?'''
 add_player_query = '''INSERT INTO PLAYERS 
                       (NICK, RECORD, NO_MSG_RECEIVED, 
                       NO_MSG_SENDED) VALUES (?,0,0,0)'''
+                      
 # MESSAGES                      
 queryMessagesTable = """CREATE TABLE IF NOT EXISTS MESSAGES (
 ID INTEGER PRIMARY KEY,

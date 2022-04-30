@@ -4,7 +4,7 @@ import json
 from .errorHandler import BaseHandler, errData
 import tornado
 import DataBase
-import Models.models # Schemas for Swagger
+import Models.PlayerSchemas # Schemas for Swagger
 # Players Handler 
 # ~/players 
 class PlayersH(BaseHandler):

@@ -1,7 +1,7 @@
 from tornado_swagger.components import components
 
 @components.schemas.register
-class PostMessageSchema(object):
+class MessagePostSchema(object):
     """
     ---
     type: object
