@@ -13,6 +13,6 @@ class PlayerMergesSchema(object):
             type: string
         nick_secound:
             type: string
-        nick_finall:
+        nick_final:
             type: string
     """

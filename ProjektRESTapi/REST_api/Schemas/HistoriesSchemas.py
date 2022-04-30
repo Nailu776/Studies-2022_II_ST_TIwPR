@@ -1,11 +1,11 @@
 from tornado_swagger.components import components
 
 @components.schemas.register
-class GamesHistsSchema(object):
+class HistoriesSchema(object):
     """
     ---
     type: object
-    description: GamesHists schema
+    description: Histories schema
     properties:
         date:
             type: string
@@ -19,5 +19,5 @@ class GamesHistsSchema(object):
                     nick:
                         type: string
                     points:
-                        type integer
+                        type: integer
     """

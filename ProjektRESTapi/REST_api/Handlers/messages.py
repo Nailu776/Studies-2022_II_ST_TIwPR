@@ -207,7 +207,7 @@ class MessagesGetterH(BaseHandler):
             -   name: If-None-Match
                 in: header
                 required: false
-                description: Used to check if we have an up-to-date player.
+                description: Used to check if we have an up-to-date message.
                 schema:
                     type: string
                     #TODO comment that default after debugging

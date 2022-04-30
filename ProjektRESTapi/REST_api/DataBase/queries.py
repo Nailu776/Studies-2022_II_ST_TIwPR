@@ -41,3 +41,38 @@ patch_msg_receiver_nick_query = '''UPDATE MESSAGES SET RECEIVER_NICK = ? WHERE I
 patch_msg_text_message_query = '''UPDATE MESSAGES SET TEXT_MESSAGE = ? WHERE ID = ?'''
 put_msg_query = '''UPDATE MESSAGES SET SENDER_NICK = ?, RECEIVER_NICK = ?, TEXT_MESSAGE = ? 
 WHERE ID = ? '''
+
+# Histories          
+queryHistoriesTable = """CREATE TABLE IF NOT EXISTS HISTORIES (
+ID INTEGER PRIMARY KEY,
+DATE DATE NOT NULL,
+G_NAME CHAR(20) NOT NULL UNIQUE,
+PLAYERS_TAB TEXT NOT NULL)"""
+get_history_with_name = '''SELECT * FROM HISTORIES WHERE G_NAME = ?'''
+get_all_histories = '''SELECT * FROM HISTORIES'''
+add_history_query = '''INSERT INTO HISTORIES 
+                      (DATE, G_NAME, PLAYERS_TAB) 
+                      VALUES (?,?,?)'''
+
+# Player Merges
+queryPlayerMergesTable = """CREATE TABLE IF NOT EXISTS PLAYER_MERGES (
+ID INTEGER PRIMARY KEY,
+DATE DATE NOT NULL,
+NICK_FIRST CHAR(20) NOT NULL,
+NICK_SECOUND CHAR(20) NOT NULL,
+NICK_FINAL CHAR(20) NOT NULL)"""
+get_all_merges = '''SELECT * FROM PLAYER_MERGES'''
+get_merge_by_id = '''SELECT * FROM PLAYER_MERGES WHERE ID = ?'''
+create_merge_req = '''
+        INSERT INTO PLAYER_MERGES 
+            (DATE, NICK_FIRST, NICK_SECOUND, NICK_FINAL) 
+                VALUES (?,?,?,?)'''
+execute_merge = '''
+        UPDATE PLAYERS SET NICK = ?, 
+        RECORD = (SELECT RECORD FROM PLAYERS WHERE NICK = ?) + 
+                        (SELECT RECORD FROM PLAYERS WHERE NICK = ?),
+        NO_MSG_RECEIVED = (SELECT NO_MSG_RECEIVED FROM PLAYERS WHERE NICK = ?) + 
+                        (SELECT NO_MSG_RECEIVED FROM PLAYERS WHERE NICK = ?),
+        NO_MSG_SENDED = (SELECT NO_MSG_SENDED FROM PLAYERS WHERE NICK = ?) + 
+                        (SELECT NO_MSG_SENDED FROM PLAYERS WHERE NICK = ?)
+        WHERE NICK = ?'''
