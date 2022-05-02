@@ -180,14 +180,26 @@ class PlayerMergesH(BaseHandler):
                         request_data['nick_secound']
                     ]
                     DataBase.db.cursor.execute(
-                        DataBase.queries.create_merge_req,
-                        query_req)
-                    DataBase.db.cursor.execute(
                         DataBase.queries.execute_merge,
                         query_data)
                     DataBase.db.cursor.execute(
+                        DataBase.queries.update_sended_mess,
+                        [
+                        request_data['nick_final'],
+                        request_data['nick_secound']
+                        ])
+                    DataBase.db.cursor.execute(
+                        DataBase.queries.update_received_mess,
+                        [
+                        request_data['nick_final'],
+                        request_data['nick_secound']
+                        ])
+                    DataBase.db.cursor.execute(
                         DataBase.queries.delete_player_query,
                         query_del)
+                    DataBase.db.cursor.execute(
+                        DataBase.queries.create_merge_req,
+                        query_req)
                     DataBase.db.conn.commit()
 
                     # Check if players are merged succesfully

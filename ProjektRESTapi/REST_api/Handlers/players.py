@@ -73,6 +73,20 @@ class PlayersH(BaseHandler):
             type: string
             # NOTE default value is usefull for debuging
             # default: '"ETag"' 
+        - name: limit
+          in: query
+          required: false
+          description: Limit the number of players to get.
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          required: false
+          description: Number of page of players to get.
+          schema:
+            type: integer
+            format: int64
       responses:
           "200":
               description: The ranking list successfully geted.
@@ -81,9 +95,26 @@ class PlayersH(BaseHandler):
                 The ranking list has not been modified since the last get.
     """
     #EODescription end-point  
+
+    # Paging
+    limit = self.get_query_argument("limit", None)
+    page = self.get_query_argument("page", None)
+    if page is None or limit is None:
+      page = 0
+      limit = 10
+    else: 
+      limit = int(limit) 
+      if limit < 1:
+        limit = 10
+      page = int(page)
+      if page < 1:
+        page = 0
+      else:
+        page = (page - 1) * limit
+    get_query_data = [limit, page]
     # Get list of players from db
     DataBase.db.cursor.execute(
-      DataBase.queries.get_players_query)
+      DataBase.queries.get_players_query, get_query_data)
     records = DataBase.db.cursor.fetchall()
     players_table = []
     for dbRecord in records:

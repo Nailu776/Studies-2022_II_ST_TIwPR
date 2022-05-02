@@ -176,7 +176,21 @@ class HistoriesH(BaseHandler):
                 schema:
                     type: string
                     # NOTE default value is usefull for debuging
-                    # default: '"ETag"'
+                    # default: '"ETag"' 
+            -   name: limit
+                in: query
+                required: false
+                description: Limit the number of histories to get.
+                schema:
+                    type: integer
+                    format: int64
+            -   name: page
+                in: query
+                required: false
+                description: Number of page of histories to get.
+                schema:
+                    type: integer
+                    format: int64
         responses:
             "200":
                 description: 
@@ -190,8 +204,24 @@ class HistoriesH(BaseHandler):
         """
         #EODescription end-point
 
+        # Paging
+        limit = self.get_query_argument("limit", None)
+        page = self.get_query_argument("page", None)
+        if page is None or limit is None:
+            page = 0
+            limit = 10
+        else: 
+            limit = int(limit) 
+            if limit < 1:
+                limit = 10
+            page = int(page)
+            if page < 1:
+                page = 0
+            else:
+                page = (page - 1) * limit
+        get_query_data = [limit, page]
         DataBase.db.cursor.execute(
-            DataBase.queries.get_all_histories)
+            DataBase.queries.get_all_histories, get_query_data)
         dbRecord = DataBase.db.cursor.fetchall()
         if dbRecord:
             response = {}

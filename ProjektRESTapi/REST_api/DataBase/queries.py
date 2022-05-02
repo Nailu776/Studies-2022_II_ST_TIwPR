@@ -8,7 +8,7 @@ queryPlayersTable = """CREATE TABLE IF NOT EXISTS PLAYERS (
 add_player_query = '''INSERT INTO PLAYERS 
                       (NICK, RECORD, NO_MSG_RECEIVED, 
                       NO_MSG_SENDED) VALUES (?,0,0,0)'''
-get_players_query = '''SELECT * FROM PLAYERS ORDER BY RECORD DESC'''
+get_players_query = '''SELECT * FROM PLAYERS ORDER BY RECORD DESC LIMIT ? OFFSET ?'''
 get_player_query = '''SELECT * FROM PLAYERS WHERE NICK = ? '''
 patch_player_record_query = '''UPDATE PLAYERS SET RECORD = ? WHERE NICK = ?'''
 patch_player_received_query = '''UPDATE PLAYERS SET NO_MSG_RECEIVED = ? WHERE NICK = ?'''
@@ -21,13 +21,17 @@ delete_player_query = '''DELETE FROM PLAYERS WHERE NICK=?'''
 queryMessagesTable = """CREATE TABLE IF NOT EXISTS MESSAGES (
                         ID INTEGER PRIMARY KEY,
                         SENDER_NICK TEXT DEFAULT DELETED_PLAYER
-                            REFERENCES PLAYERS(NICK)
+                            REFERENCES PLAYERS(NICK) 
+                                ON UPDATE CASCADE
                                 ON DELETE SET DEFAULT,
                         RECEIVER_NICK TEXT DEFAULT DELETED_PLAYER
-                            REFERENCES PLAYERS(NICK)
+                            REFERENCES PLAYERS(NICK) 
+                                ON UPDATE CASCADE    
                                 ON DELETE SET DEFAULT,
                         TEXT_MESSAGE TEXT
                         )"""
+update_sended_mess = '''UPDATE MESSAGES SET SENDER_NICK = ? WHERE SENDER_NICK = ?'''
+update_received_mess = '''UPDATE MESSAGES SET RECEIVER_NICK = ? WHERE RECEIVER_NICK = ?'''
 add_message_query = '''INSERT INTO MESSAGES 
                       (SENDER_NICK, RECEIVER_NICK, TEXT_MESSAGE) 
                       VALUES (?,?,?)'''
@@ -54,7 +58,7 @@ DATE DATE NOT NULL,
 G_NAME TEXT NOT NULL UNIQUE,
 PLAYERS_TAB TEXT NOT NULL)"""
 get_history_with_name = '''SELECT * FROM HISTORIES WHERE G_NAME = ?'''
-get_all_histories = '''SELECT * FROM HISTORIES'''
+get_all_histories = '''SELECT * FROM HISTORIES LIMIT ? OFFSET ?'''
 add_history_query = '''INSERT INTO HISTORIES 
                       (DATE, G_NAME, PLAYERS_TAB) 
                       VALUES (?,?,?)'''
@@ -65,7 +69,11 @@ ID INTEGER PRIMARY KEY,
 DATE DATE NOT NULL,
 NICK_FIRST TEXT NOT NULL,
 NICK_SECOUND TEXT NOT NULL,
-NICK_FINAL TEXT NOT NULL)"""
+NICK_FINAL TEXT NOT NULL 
+    DEFAULT DELETED_PLAYER
+        REFERENCES PLAYERS(NICK) 
+            ON UPDATE CASCADE    
+            ON DELETE SET DEFAULT)"""
 get_all_merges = '''SELECT * FROM PLAYER_MERGES'''
 get_merge_by_id = '''SELECT * FROM PLAYER_MERGES WHERE ID = ?'''
 create_merge_req = '''
