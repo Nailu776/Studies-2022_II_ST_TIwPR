@@ -21,7 +21,7 @@ def init_players():
         ["NICK0"])
     for i in range (1, 100):
         cursor.execute(queries.add_player_query,
-            ["Gracz"+str(i)])
+            ["Player"+str(i)])
     conn.commit()
 def init_messages():
     # drop query
