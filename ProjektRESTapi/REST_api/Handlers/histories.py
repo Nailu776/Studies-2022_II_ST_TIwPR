@@ -61,102 +61,25 @@ class HistoriesH(BaseHandler):
         tags:
             - Histories
         summary: 
-            Create a new game history.
-        description: 
-            This HTTP method is used to create a new game history.
-        operationId: addMessage      
-        requestBody: 
-            description: New message attributes.
-            content:
-                application/json:
-                    schema:
-                        $ref: '#/components/schemas/HistoriesSchema'
-            required: true
+            Create a new game history exactly once by POST-PUT method.
+        description: >
+            This HTTP method is used to create a new game history 
+            exactly once by POST-PUT method.
+        operationId: addHistory
         responses:
             '200':
-                description: New game history added.
-            '417':
-                description: Expected 3 fulfilled JSON elements in request body.
-            '500':
-                description: Something unexpected happened and new History does not exist.
+                description: PUT history on location in response.
         """
         # EODescription end-point
-
-        try:
-            # Decode request data
-            request_data = json.loads(self.request.body.decode("utf-8"))
-        except:
-            errData['Cause'] = 'Check if request body is correct.'
-            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
-        else:
-            if len(request_data) != 3:
-                errData['Cause'] = 'Request body require 3 elements.'
-                raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
-            else:
-                # NOTE Check if got 3 arguments
-                # date, g_name and players_tab
-                try:
-                    if request_data['date']:
-                        pass
-                    if request_data['g_name']:
-                        pass
-                    if request_data['players_tab']:
-                        pass 
-                except:
-                    errData['Cause'] = 'Check if request body is correct.'
-                    raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
-                else:
-                    # Check if date is not empty
-                    if not request_data['date']:
-                        errData['Cause'] = 'Date is empty.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
-
-                    # Check if g_name is not empty
-                    if not request_data['g_name']:
-                        errData['Cause'] = 'Game name is empty.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
-
-                    # Check if players_tab is not empty
-                    if not request_data['players_tab']:
-                        errData['Cause'] = 'Players tab is empty.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
-
-                    # Check if there is game with given name
-                    DataBase.db.cursor.execute(
-                        DataBase.queries.get_history_with_name,
-                        [request_data['g_name']])
-                    dbRecord = DataBase.db.cursor.fetchone()
-                    if dbRecord is not None:
-                        errData['Cause'] = 'Game name is not unique.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
-
-                    # Add new game history
-                    # NOTE CREATE STRING FROM ARRAY OF {PLAYER, POINTS}
-                    converterTab = {}
-                    converterTab['players_tab'] = request_data['players_tab']
-                    stringTab = json.dumps(converterTab)
-                    DataBase.db.cursor.execute(
-                        DataBase.queries.add_history_query,
-                        [request_data['date'],
-                        request_data['g_name'],
-                        stringTab])
-                    DataBase.db.conn.commit()
-
-                    # Get added history
-                    DataBase.db.cursor.execute(
-                        DataBase.queries.get_history_with_name,
-                        [request_data['g_name']])
-                    dbRecord = DataBase.db.cursor.fetchone()
-                    
-                    if dbRecord:
-                        # Write response
-                        response = {}
-                        response['Response'] = 'New history added.'
-                        response['Game History'] = buildHistoryJSON_db(dbRecord)  
-                        self.write(response)
-                    else:
-                        errData['Cause'] = 'New history was not added.'
-                        raise HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR)
+        DataBase.db.cursor.execute(
+            DataBase.queries.poe_post_dummy_history_query)
+        dbRecord = DataBase.db.cursor.lastrowid
+        DataBase.db.conn.commit()
+        response = {}
+        response['Response'] = 'PUT history on location in response header.'
+        response['Location'] = dbRecord
+        self.write(response)
+        self.add_header('Location', dbRecord)
     def get(self):
         """
         Description end-point
@@ -238,8 +161,9 @@ class HistoriesH(BaseHandler):
             # 404 Error Code
             raise HTTPError(HTTPStatus.NOT_FOUND) 
 
+
 class HistoriesDetailsH(BaseHandler):
-    def get(self, g_name):
+    def get(self, g_id):
         """
         Description end-point
         ---
@@ -251,7 +175,7 @@ class HistoriesDetailsH(BaseHandler):
             This HTTP method is used to get specific history by game name.
         operationId: getHistory
         parameters:
-            -   name: g_name
+            -   name: g_id
                 in: path
                 description: Unique name of game.
                 schema:
@@ -268,9 +192,9 @@ class HistoriesDetailsH(BaseHandler):
                     Wrong name. Game not found.
         """
         #EODescription end-point  
-        if g_name:
+        if g_id:
             DataBase.db.cursor.execute(
-                DataBase.queries.get_history_with_name, [g_name])
+                DataBase.queries.get_history_with_name, [g_id])
             dbRecord = DataBase.db.cursor.fetchone()
             if dbRecord:
                 response = {}
@@ -287,3 +211,132 @@ class HistoriesDetailsH(BaseHandler):
             errData['Cause'] = 'Check for missing name of game.'
             # 422 Error Code
             raise HTTPError(HTTPStatus.EXPECTATION_FAILED) 
+    def put(self, g_id):
+        """
+        Description end-point
+        ---
+        tags:
+            - Histories
+        summary: 
+            Create a new game history exactly once by POST-PUT method.
+        description: >
+            This HTTP method is used to create a new game history 
+            exactly once by POST-PUT method.
+        operationId: addHistory123   
+        parameters:
+            -   name: g_id
+                in: path
+                required: false
+                description: Limit the number of players to get.
+                required: true
+                schema:
+                    type: integer
+                    format: int64
+        requestBody: 
+            description: New history attributes.
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/HistoriesSchema'
+            required: true
+        responses:
+            '200':
+                description: New game history added.
+            '417':
+                description: Expected 3 fulfilled JSON elements in request body.
+            '500':
+                description: Something unexpected happened and new History does not exist.
+        """
+        # EODescription end-point
+        try:
+            h_id = int(g_id)
+            DataBase.db.cursor.execute(
+                DataBase.queries.get_history_with_id, [h_id])
+            dbRecord = DataBase.db.cursor.fetchone()
+            if dbRecord is None:
+                # It should be DummyHistory
+                errData['Cause'] = 'Check if Location is correct.'
+                raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+            else:
+                if dbRecord[3] != "DummyHistory":
+                    errData['Cause'] = 'Check if Location is correct.'
+                    raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+        except:
+            errData['Cause'] = 'Check if Location is correct.'
+            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+
+        try:
+            # Decode request data
+            request_data = json.loads(self.request.body.decode("utf-8"))
+        except:
+            errData['Cause'] = 'Check if request body is correct.'
+            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+        else:
+            if len(request_data) != 3:
+                errData['Cause'] = 'Request body require 3 elements.'
+                raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+            else:
+                # NOTE Check if got 3 arguments
+                # date, g_name and players_tab
+                try:
+                    if request_data['date']:
+                        pass
+                    if request_data['g_name']:
+                        pass
+                    if request_data['players_tab']:
+                        pass 
+                except:
+                    errData['Cause'] = 'Check if request body is correct.'
+                    raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                else:
+                    # Check if date is not empty
+                    if not request_data['date']:
+                        errData['Cause'] = 'Date is empty.'
+                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+
+                    # Check if g_name is not empty
+                    if not request_data['g_name']:
+                        errData['Cause'] = 'Game name is empty.'
+                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+
+                    # Check if players_tab is not empty
+                    if not request_data['players_tab']:
+                        errData['Cause'] = 'Players tab is empty.'
+                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+
+                    # Check if there is game with given name
+                    DataBase.db.cursor.execute(
+                        DataBase.queries.get_history_with_name,
+                        [request_data['g_name']])
+                    dbRecord = DataBase.db.cursor.fetchone()
+                    if dbRecord is not None:
+                        errData['Cause'] = 'Game name is not unique.'
+                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+
+                    # Add new game history
+                    # NOTE CREATE STRING FROM ARRAY OF {PLAYER, POINTS}
+                    converterTab = {}
+                    converterTab['players_tab'] = request_data['players_tab']
+                    stringTab = json.dumps(converterTab)
+                    DataBase.db.cursor.execute(
+                        DataBase.queries.poe_put_history_query,
+                        [request_data['date'],
+                        request_data['g_name'],
+                        stringTab, h_id])
+                    DataBase.db.conn.commit()
+
+                    # Get added history
+                    DataBase.db.cursor.execute(
+                        DataBase.queries.get_history_with_name,
+                        [request_data['g_name']])
+                    dbRecord = DataBase.db.cursor.fetchone()
+                    
+                    if dbRecord:
+                        # Write response
+                        response = {}
+                        response['Response'] = 'New history added.'
+                        response['Game History'] = buildHistoryJSON_db(dbRecord)  
+                        self.write(response)
+                    else:
+                        errData['Cause'] = 'New history was not added.'
+                        raise HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR)

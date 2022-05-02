@@ -54,14 +54,21 @@ WHERE ID = ? '''
 # Histories          
 queryHistoriesTable = """CREATE TABLE IF NOT EXISTS HISTORIES (
 ID INTEGER PRIMARY KEY,
-DATE DATE NOT NULL,
-G_NAME TEXT NOT NULL UNIQUE,
-PLAYERS_TAB TEXT NOT NULL)"""
+DATE DATE,
+G_NAME TEXT UNIQUE,
+PLAYERS_TAB TEXT)"""
 get_history_with_name = '''SELECT * FROM HISTORIES WHERE G_NAME = ?'''
+get_history_with_id = '''SELECT * FROM HISTORIES WHERE ID = ?'''
 get_all_histories = '''SELECT * FROM HISTORIES LIMIT ? OFFSET ?'''
 add_history_query = '''INSERT INTO HISTORIES 
                       (DATE, G_NAME, PLAYERS_TAB) 
                       VALUES (?,?,?)'''
+poe_post_dummy_history_query = '''INSERT INTO HISTORIES 
+                      (DATE, G_NAME, PLAYERS_TAB) 
+                      VALUES (NULL,NULL,"DummyHistory")'''
+poe_put_history_query= '''UPDATE HISTORIES SET  
+                      DATE = ?, G_NAME = ?, PLAYERS_TAB = ? 
+                      WHERE ID = ?'''
 
 # Player Merges
 queryPlayerMergesTable = """CREATE TABLE IF NOT EXISTS PLAYER_MERGES (

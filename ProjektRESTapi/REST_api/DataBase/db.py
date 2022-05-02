@@ -4,7 +4,7 @@ from . import queries
 conn = sqlite3.connect('DataBase/sqliteDB.db')
 # cursor object
 cursor = conn.cursor()
-reset = True
+reset = False
 def init_players():
     # drop query
     cursor.execute("DROP TABLE IF EXISTS PLAYERS")
