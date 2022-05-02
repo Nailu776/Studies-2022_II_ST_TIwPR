@@ -211,7 +211,7 @@ class MessagesGetterH(BaseHandler):
                 description: Used to check if we have an up-to-date message.
                 schema:
                     type: string
-                    #TODO comment that default after debugging
+                    # NOTE default value is usefull for debuging
                     # default: '"ETag"'
         responses:
             "200":
@@ -358,8 +358,8 @@ class MessagesDetailsH(BaseHandler):
                 description: Used to prevent lost-update-problem.
                 schema:
                     type: string
-                    #TODO comment that default after debugging
-                    default: '"ETag"'   
+                    # NOTE default value is usefull for debuging
+                    # default: '"ETag"'   
         responses:
             "200":
                 description: 
@@ -451,8 +451,8 @@ class MessagesDetailsH(BaseHandler):
                 description: Used to prevent lost-update-problem.
                 schema:
                     type: string
-                    #TODO comment that default after debugging
-                    default: '"ETag"' 
+                    # NOTE default value is usefull for debuging
+                    # default: '"ETag"' 
         requestBody:
             description: Update a specific message.
             content:
@@ -577,7 +577,7 @@ class MessagesDetailsH(BaseHandler):
                 description: Used to prevent lost-update-problem.
                 schema:
                     type: string
-                    #TODO comment that default after debugging
+                    # NOTE default value is usefull for debuging
                     default: '"ETag"'  
         requestBody:
             description: Update a specific message.

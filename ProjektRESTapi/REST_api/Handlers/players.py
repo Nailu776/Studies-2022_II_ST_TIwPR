@@ -259,7 +259,7 @@ class PlayersDetailsH(BaseHandler):
           description: Used to check if we have an up-to-date player.
           schema:
             type: string
-            #TODO comment that default after debugging
+            # NOTE default value is usefull for debuging
             # default: '"ETag"'
       responses:
           "200":
@@ -315,7 +315,7 @@ class PlayersDetailsH(BaseHandler):
           description: Used to prevent lost-update-problem.
           schema:
             type: string
-            #TODO comment that default after debugging
+            # NOTE default value is usefull for debuging
             default: '"ETag"'   
       responses:
           "200":
@@ -355,7 +355,7 @@ class PlayersDetailsH(BaseHandler):
           # Delete Player From Database By Nick
           DataBase.db.cursor.execute(DataBase.queries.delete_player_query, [nick])
           DataBase.db.conn.commit()
-          #TODO comment this after debug 500
+          # NOTE comment this after debug 500
           # DataBase.db.cursor.execute(DataBase.queries.add_player_query, [nick]) 
           checkPlayerDeleted(nick)
           self._headers['Content-Type'] = "text/html; charset=utf-8"
@@ -396,7 +396,7 @@ class PlayersDetailsH(BaseHandler):
           description: Used to prevent lost-update-problem.
           schema:
             type: string
-            #TODO comment that default after debugging
+            # NOTE default value is usefull for debuging
             # default: '"ETag"' 
       requestBody:
         description: Update a specific player.
@@ -517,7 +517,7 @@ class PlayersDetailsH(BaseHandler):
           description: Used to prevent lost-update-problem.
           schema:
             type: string
-            #TODO comment that default after debugging
+            # NOTE default value is usefull for debuging
             # default: '"ETag"' 
       requestBody:
         description: Update a specific player.
