@@ -71,7 +71,7 @@ class PlayersH(BaseHandler):
           description: Used to check if we have an up-to-date list.
           schema:
             type: string
-            #TODO comment that default after debugging
+            # NOTE default value is usefull for debuging
             # default: '"ETag"' 
       responses:
           "200":
@@ -539,7 +539,9 @@ class PlayersDetailsH(BaseHandler):
             else:
                 #TODO Check if got 3 arguments = points_record, no_msg_sended and no_msg_received
                 try:
-                  query_data = (dbRecord[0], dbRecord[1], int(request_data['points_record']),
+                  # query_data = (dbRecord[0], dbRecord[1], int(request_data['points_record']),
+                  #   int(request_data['no_msg_sended']), int(request_data['no_msg_received']), str(nick))
+                  query_data = (dbRecord[0], int(request_data['points_record']),
                     int(request_data['no_msg_sended']), int(request_data['no_msg_received']), str(nick))
                 except:
                     errData['Cause'] = 'Check if request body is correct.'
@@ -561,8 +563,8 @@ class PlayersDetailsH(BaseHandler):
                   self._write_buffer = []
                   data = {}
                   data['Player before update'] = buildPlayerJSON_db(dbRecord)
-                  request_data['id'] = dbRecord[0]
-                  request_data['nick'] = dbRecord[1]
+                  # request_data['id'] = dbRecord[0]
+                  request_data['nick'] = dbRecord[0]
                   player_json = buildPlayerJSON(request_data)
                   data['Player after update'] = player_json
                   self.write(json.dumps(data, sort_keys=True, indent=2))
@@ -582,15 +584,15 @@ def getPlayerFromDatabaseByNick(nick):
   return DataBase.db.cursor.fetchone()
 def buildPlayerJSON_db(dbRecord):
   player_json = {}
-  player_json['ID'] = dbRecord[0]
-  player_json['NICK'] = dbRecord[1]
-  player_json['RECORD'] = dbRecord[2]
-  player_json['NO_MSG_RECIEVED'] = dbRecord[3]
-  player_json['NO_MSG_SENDED'] = dbRecord[4]
+  # player_json['ID'] = dbRecord[0]
+  player_json['NICK'] = dbRecord[0]
+  player_json['RECORD'] = dbRecord[1]
+  player_json['NO_MSG_RECIEVED'] = dbRecord[2]
+  player_json['NO_MSG_SENDED'] = dbRecord[3]
   return player_json
 def buildPlayerJSON(json_data):
   player_json = {}
-  player_json['ID'] = int(json_data['id'])
+  # player_json['ID'] = int(json_data['id'])
   player_json['NICK'] = str(json_data['nick'])
   player_json['RECORD'] = int(json_data['points_record'])
   player_json['NO_MSG_RECIEVED'] = int(json_data['no_msg_sended'])

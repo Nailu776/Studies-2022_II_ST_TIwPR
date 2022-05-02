@@ -35,7 +35,7 @@ class MessagesH(BaseHandler):
             content:
                 application/json:
                     schema:
-                        $ref: '#/components/schemas/PostMessageSchema'
+                        $ref: '#/components/schemas/MessagePostSchema'
             required: true
         responses:
             '200':
@@ -58,7 +58,8 @@ class MessagesH(BaseHandler):
                 errData['Cause'] = 'Request body require 3 elements.'
                 raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
             else:
-                #TODO Check if got 3 arguments = text_message, sender_nick and receiver_nick
+                # NOTE Check if got 3 arguments 
+                # text_message, sender_nick and receiver_nick
                 try:
                     if request_data['text_message']:
                         pass
@@ -123,7 +124,7 @@ class MessagesH(BaseHandler):
                         response['Response'] = 'New message added.'
                         # Update numbers recived / sended msgs
                         DataBase.db.cursor.execute(
-                            DataBase.queries.inc_message_received_query,
+                            DataBase.queries.inc_message_sended_query,
                             [request_data['sender_nick']])
                         DataBase.db.cursor.execute(
                             DataBase.queries.inc_message_received_query,
@@ -457,7 +458,7 @@ class MessagesDetailsH(BaseHandler):
             content:
                 application/json:
                     schema:
-                        $ref: '#/components/schemas/PostMessageSchema'
+                        $ref: '#/components/schemas/MessagePostSchema'
         responses:
             "200":
                 description: 

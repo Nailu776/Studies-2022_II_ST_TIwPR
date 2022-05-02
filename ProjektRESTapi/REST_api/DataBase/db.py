@@ -4,28 +4,35 @@ from . import queries
 conn = sqlite3.connect('DataBase/sqliteDB.db')
 # cursor object
 cursor = conn.cursor()
+reset = False
 def init_players():
     # drop query
-    #cursor.execute("DROP TABLE IF EXISTS PLAYERS")
+    cursor.execute("DROP TABLE IF EXISTS PLAYERS")
     cursor.execute(queries.queryPlayersTable)
+    cursor.execute(queries.add_player_query,
+        ["DELETED_PLAYER"])
     conn.commit()
 def init_messages():
     # drop query
-    # cursor.execute("DROP TABLE IF EXISTS MESSAGES")
+    cursor.execute("DROP TABLE IF EXISTS MESSAGES")
     cursor.execute(queries.queryMessagesTable)
     conn.commit()
 def init_histories():
     # drop query
-    # cursor.execute("DROP TABLE IF EXISTS HISTORIES")
+    cursor.execute("DROP TABLE IF EXISTS HISTORIES")
     cursor.execute(queries.queryHistoriesTable)
     conn.commit()
 def init_merges():
     # drop query
-    # cursor.execute("DROP TABLE IF EXISTS PLAYER_MERGES")
+    cursor.execute("DROP TABLE IF EXISTS PLAYER_MERGES")
     cursor.execute(queries.queryPlayerMergesTable)
     conn.commit()
 def init():
-    init_players()
-    init_messages()
-    init_histories()
-    init_merges()
+    if reset:
+        init_players()
+        init_messages()
+        init_histories()
+        init_merges()
+    cursor.execute("PRAGMA foreign_keys = ON")
+    cursor.execute("PRAGMA foreign_keys")
+    conn.commit()

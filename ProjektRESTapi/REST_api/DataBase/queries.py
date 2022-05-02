@@ -1,28 +1,33 @@
-# PLAYERS
+# PLAYERS 
 queryPlayersTable = """CREATE TABLE IF NOT EXISTS PLAYERS (
-                ID INTEGER PRIMARY KEY,
-                NICK CHAR(20) NOT NULL UNIQUE,
+                NICK TEXT PRIMARY KEY DEFAULT DELETED,
                 RECORD INT,
                 NO_MSG_RECEIVED INT,
-                NO_MSG_SENDED INT )"""
+                NO_MSG_SENDED INT
+                )"""
+add_player_query = '''INSERT INTO PLAYERS 
+                      (NICK, RECORD, NO_MSG_RECEIVED, 
+                      NO_MSG_SENDED) VALUES (?,0,0,0)'''
 get_players_query = '''SELECT * FROM PLAYERS ORDER BY RECORD DESC'''
 get_player_query = '''SELECT * FROM PLAYERS WHERE NICK = ? '''
 patch_player_record_query = '''UPDATE PLAYERS SET RECORD = ? WHERE NICK = ?'''
 patch_player_received_query = '''UPDATE PLAYERS SET NO_MSG_RECEIVED = ? WHERE NICK = ?'''
 patch_player_sended_query = '''UPDATE PLAYERS SET NO_MSG_SENDED = ? WHERE NICK = ?'''
-put_player_query = '''UPDATE PLAYERS SET ID = ?, NICK = ?, RECORD =?, 
-NO_MSG_RECEIVED = ?, NO_MSG_SENDED =? WHERE NICK = ?'''
+put_player_query = '''UPDATE PLAYERS SET NICK = ?, RECORD =?, 
+                    NO_MSG_RECEIVED = ?, NO_MSG_SENDED =? WHERE NICK = ?'''
 delete_player_query = '''DELETE FROM PLAYERS WHERE NICK=?'''
-add_player_query = '''INSERT INTO PLAYERS 
-                      (NICK, RECORD, NO_MSG_RECEIVED, 
-                      NO_MSG_SENDED) VALUES (?,0,0,0)'''
                       
 # MESSAGES                      
 queryMessagesTable = """CREATE TABLE IF NOT EXISTS MESSAGES (
-ID INTEGER PRIMARY KEY,
-SENDER_NICK CHAR(20) NOT NULL,
-RECEIVER_NICK CHAR(20) NOT NULL,
-TEXT_MESSAGE TEXT )"""
+                        ID INTEGER PRIMARY KEY,
+                        SENDER_NICK TEXT DEFAULT DELETED_PLAYER
+                            REFERENCES PLAYERS(NICK)
+                                ON DELETE SET DEFAULT,
+                        RECEIVER_NICK TEXT DEFAULT DELETED_PLAYER
+                            REFERENCES PLAYERS(NICK)
+                                ON DELETE SET DEFAULT,
+                        TEXT_MESSAGE TEXT
+                        )"""
 add_message_query = '''INSERT INTO MESSAGES 
                       (SENDER_NICK, RECEIVER_NICK, TEXT_MESSAGE) 
                       VALUES (?,?,?)'''
@@ -46,7 +51,7 @@ WHERE ID = ? '''
 queryHistoriesTable = """CREATE TABLE IF NOT EXISTS HISTORIES (
 ID INTEGER PRIMARY KEY,
 DATE DATE NOT NULL,
-G_NAME CHAR(20) NOT NULL UNIQUE,
+G_NAME TEXT NOT NULL UNIQUE,
 PLAYERS_TAB TEXT NOT NULL)"""
 get_history_with_name = '''SELECT * FROM HISTORIES WHERE G_NAME = ?'''
 get_all_histories = '''SELECT * FROM HISTORIES'''
@@ -58,9 +63,9 @@ add_history_query = '''INSERT INTO HISTORIES
 queryPlayerMergesTable = """CREATE TABLE IF NOT EXISTS PLAYER_MERGES (
 ID INTEGER PRIMARY KEY,
 DATE DATE NOT NULL,
-NICK_FIRST CHAR(20) NOT NULL,
-NICK_SECOUND CHAR(20) NOT NULL,
-NICK_FINAL CHAR(20) NOT NULL)"""
+NICK_FIRST TEXT NOT NULL,
+NICK_SECOUND TEXT NOT NULL,
+NICK_FINAL TEXT NOT NULL)"""
 get_all_merges = '''SELECT * FROM PLAYER_MERGES'''
 get_merge_by_id = '''SELECT * FROM PLAYER_MERGES WHERE ID = ?'''
 create_merge_req = '''
