@@ -76,9 +76,10 @@ class PlayerMergesH(BaseHandler):
             '200':
                 description: Players are merged successfully.
             '417':
-                description: Expected 4 fulfilled JSON arguments in request body.
+                description: Expected correct 4 fulfilled 
+                    JSON elements in request body.
             '500':
-                description: Something unexpected happend.
+                description: Something unexpected happened.
         """
         #EODescription end-point
 
@@ -93,7 +94,8 @@ class PlayerMergesH(BaseHandler):
                 errData['Cause'] = 'Request body require 4 elements.'
                 raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
             else:
-                #TODO Check if got 4 arguments = date, nick_first, nick_secound and nick_finall
+                # NOTE Check if got 4 arguments 
+                # Find out better methode date, nick_first, nick_secound and nick_finall
                 try:
                     if request_data['date']:
                         pass
@@ -112,35 +114,43 @@ class PlayerMergesH(BaseHandler):
                         errData['Cause'] = 'Date is empty.'
                         raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
 
-                    # Check if nick_first exists
+                    # Check if first nick exists
                     DataBase.db.cursor.execute(DataBase.queries.get_player_query, 
                     [request_data['nick_first']])
-                    s_nick = DataBase.db.cursor.fetchone()
-                    if not s_nick:
+                    f_nick = DataBase.db.cursor.fetchone()
+                    if not f_nick:
                         errData['Cause'] = 'First nick is wrong.'
                         raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
 
-                    # Check if nick_secound exists
+                    # Check if secound nick exists
                     DataBase.db.cursor.execute(DataBase.queries.get_player_query, 
                     [request_data['nick_secound']])
-                    r_nick = DataBase.db.cursor.fetchone()
-                    if not r_nick:
+                    s_nick = DataBase.db.cursor.fetchone()
+                    if not s_nick:
                         errData['Cause'] = 'Secound nick is wrong.'
                         raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
 
-                    # Check if nick_final is not empty
+                    # Check if final nick is not empty
                     if not request_data['nick_final']:
                         errData['Cause'] = 'Final nick is empty.'
                         raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
 
-                    # Check if there is player with final nick
-                    DataBase.db.cursor.execute(
-                        DataBase.queries.get_player_query,
-                        [request_data['nick_final']])
-                    dbRecord = DataBase.db.cursor.fetchone()
-                    if dbRecord is not None:
-                        errData['Cause'] = 'Final nick is not unique.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                    # Check if final nick isn't first nick
+                    if request_data['nick_final'] != request_data['nick_first']:
+                        # Check if there is player with final nick 
+                        DataBase.db.cursor.execute(
+                            DataBase.queries.get_player_query,
+                            [request_data['nick_final']])
+                        dbRecord = DataBase.db.cursor.fetchone()
+                        if dbRecord is not None:
+                            errData['Cause'] = 'Final nick is not unique.'
+                            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                    else:
+                        # NOTE uncomment this code below (and next 'Note' code) 
+                        # to ensure final nick must be unique so can't be equal to first nick 
+                        # errData['Cause'] = 'Final nick is not unique.'
+                        # raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        pass
 
                     # Create merge request
                     query_req = [ 
@@ -180,23 +190,24 @@ class PlayerMergesH(BaseHandler):
                         query_del)
                     DataBase.db.conn.commit()
 
-                    
+                    # Check if players are merged succesfully
+                    # First nick can exist as final nick 
+                    # NOTE Uncomment this code below if first nick shouldn't exist after merge
                     # DataBase.db.cursor.execute(
                     #     DataBase.queries.get_player_query, [request_data['nick_first']])
                     # if DataBase.db.cursor.fetchone() is not None:
                     #     errData['Cause'] = 'First nick still exists.'
                     #     raise HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR)
-                    # DataBase.db.cursor.execute(
-                    #     DataBase.queries.get_player_query, [request_data['nick_secound']])
-                    # if DataBase.db.cursor.fetchone() is not None:
-                    #     errData['Cause'] = 'Secound nick still exists.'
-                    #     raise HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR)  
-                    # DataBase.db.cursor.execute(
-                    #     DataBase.queries.get_player_query, [request_data['nick_final']])
-                    # if DataBase.db.cursor.fetchone() is None:
-                    #     errData['Cause'] = 'Final nick does not exist.'
-                    #     raise HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR)  
-
+                    DataBase.db.cursor.execute(
+                        DataBase.queries.get_player_query, [request_data['nick_secound']])
+                    if DataBase.db.cursor.fetchone() is not None:
+                        errData['Cause'] = 'Secound nick still exists.'
+                        raise HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR)  
+                    DataBase.db.cursor.execute(
+                        DataBase.queries.get_player_query, [request_data['nick_final']])
+                    if DataBase.db.cursor.fetchone() is None:
+                        errData['Cause'] = 'Final nick does not exist.'
+                        raise HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR)  
 
                     response = {}
                     response['Response'] = 'New merge done.'
@@ -220,7 +231,7 @@ class PlayerMergesH(BaseHandler):
                 description: Used to check if we have an up-to-date list of merges.
                 schema:
                     type: string
-                    #NOTE comment that default after debugging
+                    # NOTE default value is usefull for debuging
                     # default: '"ETag"'
         responses:
             "200":
@@ -229,6 +240,9 @@ class PlayerMergesH(BaseHandler):
             "304":
                 description: 
                     Merges list not changed.
+            "404":
+                description:
+                    Merges not found. Perhaps Database is empty.
         """
         #EODescription end-point
 
@@ -272,6 +286,9 @@ class PlayerMergesDetailsH(BaseHandler):
             "200":
                 description: 
                     Merge info successfully geted.
+            "417":
+                description:
+                    Perhaps ID of merge is missing.
             "404":
                 description:
                     Wrong ID. Merge info not found.
@@ -289,11 +306,11 @@ class PlayerMergesDetailsH(BaseHandler):
                 self.write(response)
             else: 
                 # Id is wrong err.   
-                errData['Cause'] = 'ID is wrong.'
+                errData['Cause'] = 'ID is wrong. Merge not found.'
                 # 404 Error Code
                 raise HTTPError(HTTPStatus.NOT_FOUND) 
         else: 
-            # Name is missing err.
+            # ID is missing err.
             errData['Cause'] = 'Check for missing ID of merge.'
             # 422 Error Code
-            raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
+            raise HTTPError(HTTPStatus.EXPECTATION_FAILED) 

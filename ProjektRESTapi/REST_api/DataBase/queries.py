@@ -22,7 +22,7 @@ queryMessagesTable = """CREATE TABLE IF NOT EXISTS MESSAGES (
 ID INTEGER PRIMARY KEY,
 SENDER_NICK CHAR(20) NOT NULL,
 RECEIVER_NICK CHAR(20) NOT NULL,
-TEXT_MESSAGE CHAR(500) )"""
+TEXT_MESSAGE TEXT )"""
 add_message_query = '''INSERT INTO MESSAGES 
                       (SENDER_NICK, RECEIVER_NICK, TEXT_MESSAGE) 
                       VALUES (?,?,?)'''
@@ -69,8 +69,8 @@ create_merge_req = '''
                 VALUES (?,?,?,?)'''
 execute_merge = '''
         UPDATE PLAYERS SET NICK = ?, 
-        RECORD = (SELECT RECORD FROM PLAYERS WHERE NICK = ?) + 
-                        (SELECT RECORD FROM PLAYERS WHERE NICK = ?),
+        RECORD = MAX((SELECT RECORD FROM PLAYERS WHERE NICK = ?), 
+                        (SELECT RECORD FROM PLAYERS WHERE NICK = ?)),
         NO_MSG_RECEIVED = (SELECT NO_MSG_RECEIVED FROM PLAYERS WHERE NICK = ?) + 
                         (SELECT NO_MSG_RECEIVED FROM PLAYERS WHERE NICK = ?),
         NO_MSG_SENDED = (SELECT NO_MSG_SENDED FROM PLAYERS WHERE NICK = ?) + 

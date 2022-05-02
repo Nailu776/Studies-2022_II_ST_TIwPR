@@ -1,4 +1,3 @@
-from unicodedata import name
 from .errorHandler import BaseHandler, errData
 from http import HTTPStatus
 from tornado.web            import HTTPError
@@ -14,7 +13,7 @@ def buildHistoryJSON_db(dbRecord):
     history_json['ID'] = dbRecord[0]
     history_json['DATE'] = dbRecord[1]
     history_json['G_NAME'] = dbRecord[2]
-    #TODO parse string into array
+    # NOTE parsing string into json array
     history_json['PLAYERS_TAB'] = json.loads(dbRecord[3])
     return history_json
 class HistoriesH(BaseHandler):
@@ -77,11 +76,11 @@ class HistoriesH(BaseHandler):
             '200':
                 description: New game history added.
             '417':
-                description: Expected 3 fulfilled JSON arguments in request body.
+                description: Expected 3 fulfilled JSON elements in request body.
             '500':
-                description: Something unexpected happend.
+                description: Something unexpected happened and new History does not exist.
         """
-        #EODescription end-point
+        # EODescription end-point
 
         try:
             # Decode request data
@@ -94,7 +93,8 @@ class HistoriesH(BaseHandler):
                 errData['Cause'] = 'Request body require 3 elements.'
                 raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
             else:
-                #NOTE Check if got 3 arguments = date, g_name and players_tab
+                # NOTE Check if got 3 arguments
+                # date, g_name and players_tab
                 try:
                     if request_data['date']:
                         pass
@@ -131,7 +131,7 @@ class HistoriesH(BaseHandler):
                         raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
 
                     # Add new game history
-                    #NOTE CREATE STRING FROM ARRAY OF {PLAYER, POINTS}
+                    # NOTE CREATE STRING FROM ARRAY OF {PLAYER, POINTS}
                     converterTab = {}
                     converterTab['players_tab'] = request_data['players_tab']
                     stringTab = json.dumps(converterTab)
@@ -148,14 +148,15 @@ class HistoriesH(BaseHandler):
                         [request_data['g_name']])
                     dbRecord = DataBase.db.cursor.fetchone()
                     
-                    # Write response
-                    response = {}
                     if dbRecord:
+                        # Write response
+                        response = {}
                         response['Response'] = 'New history added.'
-                        response['Game History'] = buildHistoryJSON_db(dbRecord)
+                        response['Game History'] = buildHistoryJSON_db(dbRecord)  
+                        self.write(response)
                     else:
-                        response['Response'] = 'New history was not added.'  
-                    self.write(response)
+                        errData['Cause'] = 'New history was not added.'
+                        raise HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR)
     def get(self):
         """
         Description end-point
@@ -174,7 +175,7 @@ class HistoriesH(BaseHandler):
                 description: Used to check if we have an up-to-date history.
                 schema:
                     type: string
-                    #NOTE comment that default after debugging
+                    # NOTE default value is usefull for debuging
                     # default: '"ETag"'
         responses:
             "200":
@@ -183,6 +184,9 @@ class HistoriesH(BaseHandler):
             "304":
                 description: 
                     Histories not changed.
+            "404":
+                description:
+                    Histories not found. Perhaps Database is empty.
         """
         #EODescription end-point
 
@@ -212,9 +216,9 @@ class HistoriesDetailsH(BaseHandler):
         tags:
             - Histories
         summary: 
-            Get specific history (specified by name).
+            Get specific history (specified by game name).
         description: 
-            This HTTP method is used to get specific history by name.
+            This HTTP method is used to get specific history by game name.
         operationId: getHistory
         parameters:
             -   name: g_name
@@ -226,6 +230,9 @@ class HistoriesDetailsH(BaseHandler):
             "200":
                 description: 
                     History successfully geted.
+            "417":
+                description:
+                    Something is missing. Check name of game.
             "404":
                 description:
                     Wrong name. Game not found.
@@ -249,4 +256,4 @@ class HistoriesDetailsH(BaseHandler):
             # Name is missing err.
             errData['Cause'] = 'Check for missing name of game.'
             # 422 Error Code
-            raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
+            raise HTTPError(HTTPStatus.EXPECTATION_FAILED) 
