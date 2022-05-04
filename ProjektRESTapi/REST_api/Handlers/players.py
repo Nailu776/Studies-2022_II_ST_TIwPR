@@ -9,6 +9,7 @@ import DataBase
 import hashlib
 from asyncio.windows_events import NULL
 from typing import   Optional
+# TODO CODE 201 CREATED AFTER POST!
 # Schemas for Swagger
 import Schemas.PlayerSchemas 
 # Players Handler 
@@ -284,7 +285,8 @@ class PlayersDetailsH(BaseHandler):
       else: 
         # Nick is wrong err.   
         errData['Cause'] = 'Nick is wrong.'
-        # 422 Error Code
+        # 422 Error Code 
+        # TODO SWAP FOR EXPECTATION_FAILED
         raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
     else: 
       # Nick is missing err.
