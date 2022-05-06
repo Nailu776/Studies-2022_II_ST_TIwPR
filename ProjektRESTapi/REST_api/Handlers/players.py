@@ -3,56 +3,15 @@ import http.client
 from tornado.web            import HTTPError
 import json
 from .errorHandler import BaseHandler, errData
-import tornado 
-#TODO SWAP TORNADO JSON ESCAPE DECODE NA json.loads(self.request.body.decode("utf-8"))
 import DataBase
-import hashlib
-from asyncio.windows_events import NULL
-from typing import   Optional
-# TODO CODE 201 CREATED AFTER POST!
+
+
 # Schemas for Swagger
 import Schemas.PlayerSchemas 
+
 # Players Handler 
 # ~/players 
 class PlayersH(BaseHandler):
-  # Check if modified
-  def check_modified_resp(self):
-    # Check etag: if equals then response is not modified
-    self.set_my_etag_header()
-    if self.check_etag_header():
-      # Vanish response
-      self._write_buffer = []
-      # Error Code 304 Not Modified 
-      self.set_status(HTTPStatus.NOT_MODIFIED)
-      return
-    else:
-      # Etag changed so return with response body
-      return
-  # Override etag functions
-  def compute_etag(self):
-    return NULL
-  def compute_my_etag(self) -> Optional[str]:
-      """Computes the etag header to be used for this request.
-
-      By default uses a hash of the content written so far.
-
-      May be overridden to provide custom etag implementations,
-      or may return None to disable tornado's default etag support.
-      """
-      hasher = hashlib.sha1()
-      for part in self._write_buffer:
-          hasher.update(part)
-      return '"%s"' % hasher.hexdigest()
-  def set_my_etag_header(self) -> None:
-      """Sets the response's Etag header using ``self.compute_etag()``.
-
-      Note: no header will be set if ``compute_etag()`` returns ``None``.
-
-      This method is called automatically when the request is finished.
-      """
-      etag = self.compute_my_etag()
-      if etag is not None:
-          self.set_header("Etag", etag)
   def get(self):
     """
       Description end-point
@@ -144,15 +103,17 @@ class PlayersH(BaseHandler):
               $ref: '#/components/schemas/PlayerPostSchema'
         required: true
       responses:
-          '200':
+          '201':
             description: New player created.
-          '422':
+          '400':
             description: A player with this nick perhaps already exists.
     """
     #EODescription end-point
+    
     try:
       # Try to add new player
-      request_data = tornado.escape.json_decode(self.request.body)
+      request_data = json.loads(self.request.body.decode("utf-8"))\
+      # Exception if nick is not unique
       DataBase.db.cursor.execute(
         DataBase.queries.add_player_query,
         [request_data['nick']])
@@ -164,77 +125,17 @@ class PlayersH(BaseHandler):
       dbRecord = DataBase.db.cursor.fetchone()
     except:
       errData['Cause'] = 'A player with this nick perhaps already exists.'
-      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY)
+      raise HTTPError(HTTPStatus.BAD_REQUEST)
     else:
       response = {}
       response['Response'] = 'New player created.'
       response['Player'] = buildPlayerJSON_db(dbRecord)
+      self.set_status(HTTPStatus.CREATED)
       self.write(response)
-# Players Details Handler
-# ~/players/{u_name} 
+
+#  Players Details Handler
+# ~/players/{nick} 
 class PlayersDetailsH(BaseHandler):
-  # Check if etag match
-  def check_if_match(self) -> bool:
-    self.set_my_etag_header()
-    # Vanish get player response
-    self._write_buffer=[]
-    # Check if etag in request exists
-    req_etag = self.request.headers.get("If-Match", "")
-    # TODO check if it's legal to do If-None-Match = If-Match ... it is 
-    # (check check_etag_header)
-    self.request.headers['If-None-Match'] = req_etag
-    if req_etag:
-      # Check etag: if equals then entity is not modified
-      if not self.check_etag_header():
-        # Etag changed so entitiy is modified
-        errData['Cause'] = 'Entity changed.'
-        self.set_status(HTTPStatus.PRECONDITION_FAILED)
-        return False
-      else:
-        # Go on you got up-to-date entity
-        return True
-    else:
-      errData['Cause'] = 'ETag is missing.'
-      self.set_status(HTTPStatus.PRECONDITION_REQUIRED)
-      return False
-  # Check if modified
-  def check_modified_resp(self):
-    # Check etag: if equals then response is not modified
-    self.set_my_etag_header()
-    if self.check_etag_header():
-      # Vanish response
-      self._write_buffer = []
-      # Error Code 304 Not Modified 
-      self.set_status(HTTPStatus.NOT_MODIFIED)
-      return
-    else:
-      # Etag changed so return with response body
-      return
-  # Override etag functions
-  def compute_etag(self):
-    return NULL
-  def compute_my_etag(self) -> Optional[str]:
-      """Computes the etag header to be used for this request.
-
-      By default uses a hash of the content written so far.
-
-      May be overridden to provide custom etag implementations,
-      or may return None to disable tornado's default etag support.
-      """
-      hasher = hashlib.sha1()
-      for part in self._write_buffer:
-          hasher.update(part)
-      return '"%s"' % hasher.hexdigest()
-  def set_my_etag_header(self) -> None:
-      """Sets the response's Etag header using ``self.compute_etag()``.
-
-      Note: no header will be set if ``compute_etag()`` returns ``None``.
-
-      This method is called automatically when the request is finished.
-      """
-      etag = self.compute_my_etag()
-      if etag is not None:
-          self.set_header("Etag", etag)
   def get(self, nick):
     """
       Description end-point
@@ -269,11 +170,11 @@ class PlayersDetailsH(BaseHandler):
           "304":
             description: 
                Specific player has not been modified since the last get.
-          "422":
+          "400":
             description: Missing or wrong nick.
    """
     #EODescription end-point
-    #      
+          
     if nick:
       dbRecord = getPlayerFromDatabaseByNick(nick) 
       if dbRecord:
@@ -281,18 +182,18 @@ class PlayersDetailsH(BaseHandler):
         response['Response'] = 'Specific player successfully geted.'
         response['Player'] = buildPlayerJSON_db(dbRecord)
         self.write(response)
+        # 304 if not modified
         self.check_modified_resp()
       else: 
         # Nick is wrong err.   
         errData['Cause'] = 'Nick is wrong.'
-        # 422 Error Code 
-        # TODO SWAP FOR EXPECTATION_FAILED
-        raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
+        # 400 Error Code 
+        raise HTTPError(HTTPStatus.BAD_REQUEST) 
     else: 
       # Nick is missing err.
       errData['Cause'] = 'Nick is missing.'
-      # 422 Error Code
-      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
+      # 400 Error Code
+      raise HTTPError(HTTPStatus.BAD_REQUEST) 
   def delete(self, nick):
     """
       Description end-point
@@ -318,15 +219,15 @@ class PlayersDetailsH(BaseHandler):
           schema:
             type: string
             # NOTE default value is usefull for debuging
-            default: '"ETag"'   
+            # default: '"ETag"'   
       responses:
           "200":
             description: 
               Specific player successfully deleted.
-          "422":
+          "400":
             description: Missing nick.
           "404":
-            description: Player not found.
+            description: Player not found. Nick is wrong.
           "412":
             description: Precondition Failed. Entity changed.
           "428":
@@ -336,7 +237,8 @@ class PlayersDetailsH(BaseHandler):
               Server did not delete player successfully.  
               Player still exists.
     """
-    #EODescription end-point    
+    #EODescription end-point 
+       
     if nick:
       dbRecord = getPlayerFromDatabaseByNick(nick)
       if dbRecord:
@@ -357,7 +259,7 @@ class PlayersDetailsH(BaseHandler):
           # Delete Player From Database By Nick
           DataBase.db.cursor.execute(DataBase.queries.delete_player_query, [nick])
           DataBase.db.conn.commit()
-          # NOTE comment this after debug 500
+          # NOTE this is used to debug debug 500
           # DataBase.db.cursor.execute(DataBase.queries.add_player_query, [nick]) 
           checkPlayerDeleted(nick)
           self._headers['Content-Type'] = "text/html; charset=utf-8"
@@ -365,14 +267,14 @@ class PlayersDetailsH(BaseHandler):
           return 
       else: 
         # Nick is wrong err.  
-        errData['Cause'] = 'Player not found.'
+        errData['Cause'] = 'Player not found. Nick is wrong.'
          # 404 Error Code
         raise HTTPError(HTTPStatus.NOT_FOUND)
     else:
       # Nick is missing err.
       errData['Cause'] = 'Nick is missing.'
-      # 422 Error Code
-      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
+      # 400 Error Code
+      raise HTTPError(HTTPStatus.BAD_REQUEST) 
   def patch(self, nick):
     """
       Description end-point
@@ -410,18 +312,18 @@ class PlayersDetailsH(BaseHandler):
           "200":
               description: 
                   Specific player successfully updated (patched).
-          "422":
-            description: Nick is missing.
+          "400":
+            description: 
+              Nick is missing or something in request body is not in correct format.
           "404":
             description: Nick is wrong.
           "412":
             description: Precondition Failed. Entity changed.
-          "417":
-            description: Something in request body is not in correct format.
           "428":
             description: Precondition Required. Etag is missing.
     """
     #EODescription end-point 
+  
     if nick:
       dbRecord = getPlayerFromDatabaseByNick(nick)
       if dbRecord:
@@ -466,7 +368,7 @@ class PlayersDetailsH(BaseHandler):
               indents += 1
           except:
             errData['Cause'] = 'Check if request body is correct.'
-            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+            raise HTTPError(HTTPStatus.BAD_REQUEST)
           else:
             if indents == 0:
               data['Changes'] = 'Nothing'
@@ -492,8 +394,8 @@ class PlayersDetailsH(BaseHandler):
     else:
       # Nick is missing err.
       errData['Cause'] = 'Nick is missing.'
-      # 422 Error Code
-      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
+      # 400 Error Code
+      raise HTTPError(HTTPStatus.BAD_REQUEST) 
   def put(self, nick):
     """
       Description end-point
@@ -531,18 +433,18 @@ class PlayersDetailsH(BaseHandler):
           "200":
               description: 
                   Specific player successfully updated (puted).
-          "422":
-            description: Nick is missing.
+          "400":
+            description: 
+              Nick is missing or something in request body is not in correct format.
           "404":
             description: Nick is wrong.
           "412":
             description: Precondition Failed. Entity changed.
-          "417":
-            description: Something in request body is not in correct format.
           "428":
             description: Precondition Required. Etag is missing.
     """
-    #EODescription end-point    
+    #EODescription end-point  
+      
     if nick:
       dbRecord = getPlayerFromDatabaseByNick(nick)
       if dbRecord:
@@ -560,25 +462,26 @@ class PlayersDetailsH(BaseHandler):
           return
         else:
           # Precondition passed.
+          data = {}
+          data['Player before update'] = response['Player']
           try:
             request_data = json.loads(self.request.body.decode("utf-8"))
           except:
             errData['Cause'] = 'Check if request body is correct.'
-            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+            raise HTTPError(HTTPStatus.BAD_REQUEST)
           else:
             if len(request_data) != 3:
                 errData['Cause'] = 'Request body require 3 elements.'
-                raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                raise HTTPError(HTTPStatus.BAD_REQUEST)
             else:
-                #TODO Check if got 3 arguments = points_record, no_msg_sended and no_msg_received
+                # NOTE Check if got 3 arguments:
+                # points_record, no_msg_sended and no_msg_received
                 try:
-                  # query_data = (dbRecord[0], dbRecord[1], int(request_data['points_record']),
-                  #   int(request_data['no_msg_sended']), int(request_data['no_msg_received']), str(nick))
                   query_data = (dbRecord[0], int(request_data['points_record']),
                     int(request_data['no_msg_sended']), int(request_data['no_msg_received']), str(nick))
                 except:
                     errData['Cause'] = 'Check if request body is correct.'
-                    raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                    raise HTTPError(HTTPStatus.BAD_REQUEST)
                 else:
                   DataBase.db.cursor.execute(
                       DataBase.queries.put_player_query, query_data)
@@ -587,16 +490,12 @@ class PlayersDetailsH(BaseHandler):
                   DataBase.db.cursor.execute(
                     DataBase.queries.get_player_query, [nick])
                   dbRecord = DataBase.db.cursor.fetchone()
-                  response = {}
                   response['Response'] = 'Specific player successfully geted.'
                   response['Player'] = buildPlayerJSON_db(dbRecord)
                   self.write(response)
                   self.set_my_etag_header()
                   # Vanish response
                   self._write_buffer = []
-                  data = {}
-                  data['Player before update'] = buildPlayerJSON_db(dbRecord)
-                  # request_data['id'] = dbRecord[0]
                   request_data['nick'] = dbRecord[0]
                   player_json = buildPlayerJSON(request_data)
                   data['Player after update'] = player_json
@@ -610,14 +509,15 @@ class PlayersDetailsH(BaseHandler):
     else:
       # Nick is missing err.
       errData['Cause'] = 'Nick is missing.'
-       # 422 Error Code
-      raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY)
+       # 400 Error Code
+      raise HTTPError(HTTPStatus.BAD_REQUEST)
+
+# Usefull functions
 def getPlayerFromDatabaseByNick(nick):
   DataBase.db.cursor.execute(DataBase.queries.get_player_query, [nick])
   return DataBase.db.cursor.fetchone()
 def buildPlayerJSON_db(dbRecord):
   player_json = {}
-  # player_json['ID'] = dbRecord[0]
   player_json['NICK'] = dbRecord[0]
   player_json['RECORD'] = dbRecord[1]
   player_json['NO_MSG_RECIEVED'] = dbRecord[2]
@@ -625,7 +525,6 @@ def buildPlayerJSON_db(dbRecord):
   return player_json
 def buildPlayerJSON(json_data):
   player_json = {}
-  # player_json['ID'] = int(json_data['id'])
   player_json['NICK'] = str(json_data['nick'])
   player_json['RECORD'] = int(json_data['points_record'])
   player_json['NO_MSG_RECIEVED'] = int(json_data['no_msg_sended'])
