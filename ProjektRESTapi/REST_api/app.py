@@ -27,6 +27,7 @@ class Application(Application):
     _routes = [
         url("/players", PlayersH, 
             name= "Players Handler"),
+        # TODO ? while there is no nick for 400 instead of 404 
         url(r"/players/([^/]+)", PlayersDetailsH, 
             name= "Players Details Handler"),  
         url("/messages",  MessagesH, 
@@ -39,7 +40,7 @@ class Application(Application):
             name= "Histories Handler"), 
         url(r"/histories/([^/]+)", HistoriesDetailsH, 
             name= "Histories Details Handler"),    
-        url(r"/player_merges/", PlayerMergesH, 
+        url(r"/player_merges", PlayerMergesH, 
             name= "Player Merges Handler"),   
         url(r"/player_merges/([^/]+)", PlayerMergesDetailsH, 
             name= "Player Merges Details Handler"),
