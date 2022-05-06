@@ -1,59 +1,16 @@
 from .errorHandler import BaseHandler, errData
 from http import HTTPStatus
-from asyncio.windows_events import NULL
-from typing import   Optional
-import hashlib
 from tornado.web            import HTTPError
 import DataBase
 import json
+
+
+# Schemas for Swagger
 import Schemas.PlayerMergesSchemas
-# Build JSON merge from db record
-def buildMergesJSON_db(dbRecord):
-    merge_json = {}
-    merge_json['ID'] = dbRecord[0]
-    merge_json['DATE'] = dbRecord[1]
-    merge_json['NICK_FIRST'] = dbRecord[2]
-    merge_json['NICK_SECOUND'] = dbRecord[3]
-    merge_json['NICK_FINALL'] = dbRecord[4]
-    return merge_json
+
+# Players_Merges Handler 
+# ~/player_merges
 class PlayerMergesH(BaseHandler):
-    # Check if modified
-    def check_modified_resp(self):
-        # Check etag: if equals then response is not modified
-        self.set_my_etag_header()
-        if self.check_etag_header():
-            # Vanish response
-            self._write_buffer = []
-            self.set_status(HTTPStatus.NOT_MODIFIED)
-            return
-        else:
-            # Etag changed so return with response body
-            return
-    # Override etag functions
-    def compute_etag(self):
-        return NULL
-    def compute_my_etag(self) -> Optional[str]:
-        """Computes the etag header to be used for this request.
-
-        By default uses a hash of the content written so far.
-
-        May be overridden to provide custom etag implementations,
-        or may return None to disable tornado's default etag support.
-        """
-        hasher = hashlib.sha1()
-        for part in self._write_buffer:
-            hasher.update(part)
-        return '"%s"' % hasher.hexdigest()
-    def set_my_etag_header(self) -> None:
-        """Sets the response's Etag header using ``self.compute_etag()``.
-
-        Note: no header will be set if ``compute_etag()`` returns ``None``.
-
-        This method is called automatically when the request is finished.
-        """
-        etag = self.compute_my_etag()
-        if etag is not None:
-            self.set_header("Etag", etag)
     def post(self):
         """
         Description end-point
@@ -73,9 +30,9 @@ class PlayerMergesH(BaseHandler):
                         $ref: '#/components/schemas/PlayerMergesSchema'
             required: true
         responses:
-            '200':
+            '201':
                 description: Players are merged successfully.
-            '417':
+            '400':
                 description: Expected correct 4 fulfilled 
                     JSON elements in request body.
             '500':
@@ -88,14 +45,14 @@ class PlayerMergesH(BaseHandler):
             request_data = json.loads(self.request.body.decode("utf-8"))
         except:
             errData['Cause'] = 'Check if request body is correct.'
-            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+            raise HTTPError(HTTPStatus.BAD_REQUEST)
         else:
             if len(request_data) != 4:
                 errData['Cause'] = 'Request body require 4 elements.'
-                raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                raise HTTPError(HTTPStatus.BAD_REQUEST)
             else:
                 # NOTE Check if got 4 arguments 
-                # Find out better methode date, nick_first, nick_secound and nick_finall
+                # TODO Find out better method date, nick_first, nick_secound and nick_finall
                 try:
                     if request_data['date']:
                         pass
@@ -107,12 +64,12 @@ class PlayerMergesH(BaseHandler):
                         pass 
                 except:
                     errData['Cause'] = 'Check if request body is correct.'
-                    raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                    raise HTTPError(HTTPStatus.BAD_REQUEST)
                 else:
                     # Check if date is not empty
                     if not request_data['date']:
                         errData['Cause'] = 'Date is empty.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                     # Check if first nick exists
                     DataBase.db.cursor.execute(DataBase.queries.get_player_query, 
@@ -120,7 +77,7 @@ class PlayerMergesH(BaseHandler):
                     f_nick = DataBase.db.cursor.fetchone()
                     if not f_nick:
                         errData['Cause'] = 'First nick is wrong.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                     # Check if secound nick exists
                     DataBase.db.cursor.execute(DataBase.queries.get_player_query, 
@@ -128,12 +85,12 @@ class PlayerMergesH(BaseHandler):
                     s_nick = DataBase.db.cursor.fetchone()
                     if not s_nick:
                         errData['Cause'] = 'Secound nick is wrong.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                     # Check if final nick is not empty
                     if not request_data['nick_final']:
                         errData['Cause'] = 'Final nick is empty.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                     # Check if final nick isn't first nick
                     if request_data['nick_final'] != request_data['nick_first']:
@@ -144,12 +101,12 @@ class PlayerMergesH(BaseHandler):
                         dbRecord = DataBase.db.cursor.fetchone()
                         if dbRecord is not None:
                             errData['Cause'] = 'Final nick is not unique.'
-                            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                            raise HTTPError(HTTPStatus.BAD_REQUEST)
                     else:
                         # NOTE uncomment this code below (and next 'Note' code) 
                         # to ensure final nick must be unique so can't be equal to first nick 
                         # errData['Cause'] = 'Final nick is not unique.'
-                        # raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        # raise HTTPError(HTTPStatus.BAD_REQUEST)
                         pass
 
                     # Create merge request
@@ -224,6 +181,7 @@ class PlayerMergesH(BaseHandler):
                     response = {}
                     response['Response'] = 'New merge done.'
                     response['New nick'] = request_data['nick_final']     
+                    self.set_status(HTTPStatus.CREATED)
                     self.write(response)
     def get(self):
         """
@@ -269,6 +227,7 @@ class PlayerMergesH(BaseHandler):
                 mergesTab.append(buildMergesJSON_db(records))
             response['Merges'] = mergesTab
             self.write(response)
+            # 304 if not modified
             self.check_modified_resp()
         else: 
             # Db is empty.   
@@ -276,6 +235,8 @@ class PlayerMergesH(BaseHandler):
             # 404 Error Code
             raise HTTPError(HTTPStatus.NOT_FOUND) 
 
+# Players_Merges Details Handler 
+# ~/player_merges/{pm_id}
 class PlayerMergesDetailsH(BaseHandler):
     def get(self, pm_id):
         """
@@ -298,7 +259,7 @@ class PlayerMergesDetailsH(BaseHandler):
             "200":
                 description: 
                     Merge info successfully geted.
-            "417":
+            "400":
                 description:
                     Perhaps ID of merge is missing.
             "404":
@@ -324,5 +285,15 @@ class PlayerMergesDetailsH(BaseHandler):
         else: 
             # ID is missing err.
             errData['Cause'] = 'Check for missing ID of merge.'
-            # 422 Error Code
-            raise HTTPError(HTTPStatus.EXPECTATION_FAILED) 
+            # 400 Error Code
+            raise HTTPError(HTTPStatus.BAD_REQUEST) 
+
+# Build JSON merge from db record
+def buildMergesJSON_db(dbRecord):
+    merge_json = {}
+    merge_json['ID'] = dbRecord[0]
+    merge_json['DATE'] = dbRecord[1]
+    merge_json['NICK_FIRST'] = dbRecord[2]
+    merge_json['NICK_SECOUND'] = dbRecord[3]
+    merge_json['NICK_FINALL'] = dbRecord[4]
+    return merge_json
