@@ -2,58 +2,15 @@ from .errorHandler import BaseHandler, errData
 from http import HTTPStatus
 from tornado.web            import HTTPError
 import DataBase
-from asyncio.windows_events import NULL
-from typing import   Optional
-import hashlib
-import Schemas.HistoriesSchemas
 import json
-# Build JSON History from db record
-def buildHistoryJSON_db(dbRecord):
-    history_json = {}
-    history_json['ID'] = dbRecord[0]
-    history_json['DATE'] = dbRecord[1]
-    history_json['G_NAME'] = dbRecord[2]
-    # NOTE parsing string into json array
-    history_json['PLAYERS_TAB'] = json.loads(dbRecord[3])
-    return history_json
+
+
+# Schemas for Swagger
+import Schemas.HistoriesSchemas
+
+# Histories Handler 
+# ~/histories 
 class HistoriesH(BaseHandler):
-    # Check if modified
-    def check_modified_resp(self):
-        # Check etag: if equals then response is not modified
-        self.set_my_etag_header()
-        if self.check_etag_header():
-            # Vanish response
-            self._write_buffer = []
-            self.set_status(HTTPStatus.NOT_MODIFIED)
-            return
-        else:
-            # Etag changed so return with response body
-            return
-    # Override etag functions
-    def compute_etag(self):
-        return NULL
-    def compute_my_etag(self) -> Optional[str]:
-        """Computes the etag header to be used for this request.
-
-        By default uses a hash of the content written so far.
-
-        May be overridden to provide custom etag implementations,
-        or may return None to disable tornado's default etag support.
-        """
-        hasher = hashlib.sha1()
-        for part in self._write_buffer:
-            hasher.update(part)
-        return '"%s"' % hasher.hexdigest()
-    def set_my_etag_header(self) -> None:
-        """Sets the response's Etag header using ``self.compute_etag()``.
-
-        Note: no header will be set if ``compute_etag()`` returns ``None``.
-
-        This method is called automatically when the request is finished.
-        """
-        etag = self.compute_my_etag()
-        if etag is not None:
-            self.set_header("Etag", etag)
     def post(self):
         """
         Description end-point
@@ -161,7 +118,8 @@ class HistoriesH(BaseHandler):
             # 404 Error Code
             raise HTTPError(HTTPStatus.NOT_FOUND) 
 
-
+# Histories Details Handler 
+# ~/histories/{g_id} 
 class HistoriesDetailsH(BaseHandler):
     def get(self, g_id):
         """
@@ -184,7 +142,7 @@ class HistoriesDetailsH(BaseHandler):
             "200":
                 description: 
                     History successfully geted.
-            "417":
+            "400":
                 description:
                     Something is missing. Check name of game.
             "404":
@@ -209,8 +167,8 @@ class HistoriesDetailsH(BaseHandler):
         else: 
             # Name is missing err.
             errData['Cause'] = 'Check for missing name of game.'
-            # 422 Error Code
-            raise HTTPError(HTTPStatus.EXPECTATION_FAILED) 
+            # 400 Error Code
+            raise HTTPError(HTTPStatus.BAD_REQUEST) 
     def put(self, g_id):
         """
         Description end-point
@@ -242,12 +200,12 @@ class HistoriesDetailsH(BaseHandler):
         responses:
             '200':
                 description: New game history added.
-            '417':
+            '400':
                 description: Expected 3 fulfilled JSON elements in request body.
             '500':
                 description: Something unexpected happened and new History does not exist.
         """
-        # EODescription end-point
+        # EODescription end-point 
         try:
             h_id = int(g_id)
             DataBase.db.cursor.execute(
@@ -256,27 +214,27 @@ class HistoriesDetailsH(BaseHandler):
             if dbRecord is None:
                 # It should be DummyHistory
                 errData['Cause'] = 'Check if Location is correct.'
-                raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                raise HTTPError(HTTPStatus.BAD_REQUEST)
             else:
                 if dbRecord[3] != "DummyHistory":
                     errData['Cause'] = 'Check if Location is correct.'
-                    raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                    raise HTTPError(HTTPStatus.BAD_REQUEST)
         except:
             errData['Cause'] = 'Check if Location is correct.'
-            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+            raise HTTPError(HTTPStatus.BAD_REQUEST)
 
         try:
             # Decode request data
             request_data = json.loads(self.request.body.decode("utf-8"))
         except:
             errData['Cause'] = 'Check if request body is correct.'
-            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+            raise HTTPError(HTTPStatus.BAD_REQUEST)
         else:
             if len(request_data) != 3:
                 errData['Cause'] = 'Request body require 3 elements.'
-                raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                raise HTTPError(HTTPStatus.BAD_REQUEST)
             else:
-                # NOTE Check if got 3 arguments
+                # NOTE Check if got 3 arguments:
                 # date, g_name and players_tab
                 try:
                     if request_data['date']:
@@ -287,22 +245,22 @@ class HistoriesDetailsH(BaseHandler):
                         pass 
                 except:
                     errData['Cause'] = 'Check if request body is correct.'
-                    raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                    raise HTTPError(HTTPStatus.BAD_REQUEST)
                 else:
                     # Check if date is not empty
                     if not request_data['date']:
                         errData['Cause'] = 'Date is empty.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                     # Check if g_name is not empty
                     if not request_data['g_name']:
                         errData['Cause'] = 'Game name is empty.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                     # Check if players_tab is not empty
                     if not request_data['players_tab']:
                         errData['Cause'] = 'Players tab is empty.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                     # Check if there is game with given name
                     DataBase.db.cursor.execute(
@@ -311,7 +269,7 @@ class HistoriesDetailsH(BaseHandler):
                     dbRecord = DataBase.db.cursor.fetchone()
                     if dbRecord is not None:
                         errData['Cause'] = 'Game name is not unique.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                     # Add new game history
                     # NOTE CREATE STRING FROM ARRAY OF {PLAYER, POINTS}
@@ -335,8 +293,19 @@ class HistoriesDetailsH(BaseHandler):
                         # Write response
                         response = {}
                         response['Response'] = 'New history added.'
-                        response['Game History'] = buildHistoryJSON_db(dbRecord)  
+                        response['Game History'] = buildHistoryJSON_db(dbRecord) 
+                        self.set_status(HTTPStatus.CREATED) 
                         self.write(response)
                     else:
                         errData['Cause'] = 'New history was not added.'
                         raise HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR)
+
+# Build JSON History from db record
+def buildHistoryJSON_db(dbRecord):
+    history_json = {}
+    history_json['ID'] = dbRecord[0]
+    history_json['DATE'] = dbRecord[1]
+    history_json['G_NAME'] = dbRecord[2]
+    # NOTE parsing string into json array
+    history_json['PLAYERS_TAB'] = json.loads(dbRecord[3])
+    return history_json
