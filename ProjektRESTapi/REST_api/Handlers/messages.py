@@ -466,7 +466,7 @@ class MessagesDetailsH(BaseHandler):
                 schema:
                     type: string
                     # NOTE default value is usefull for debuging
-                    default: '"ETag"'  
+                    # default: '"ETag"'  
         requestBody:
             description: Update a specific message.
             content:
