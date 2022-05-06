@@ -1,21 +1,14 @@
 from http import HTTPStatus
 import http.client
 from tornado.web            import HTTPError
-import json
 from .errorHandler import BaseHandler, errData
 import DataBase
+import json
+
+
+# Schemas for Swagger
 import Schemas.MessageSchemas
-import hashlib
-from asyncio.windows_events import NULL
-from typing import   Optional
-# Build JSON message from db record
-def buildMessageJSON_db(dbRecord):
-    message_json = {}
-    message_json['ID'] = dbRecord[0]
-    message_json['SENDER_NICK'] = dbRecord[1]
-    message_json['RECEIVER_NICK'] = dbRecord[2]
-    message_json['TEXT_MESSAGE'] = dbRecord[3]
-    return message_json
+
 # Messages Handler 
 # ~/messages 
 class MessagesH(BaseHandler):
@@ -38,9 +31,9 @@ class MessagesH(BaseHandler):
                         $ref: '#/components/schemas/MessagePostSchema'
             required: true
         responses:
-            '200':
+            '201':
                 description: New message sended.
-            '417':
+            '400':
                 description: Expected 3 fulfilled JSON arguments in request body.
             '500':
                 description: Something unexpected happend.
@@ -52,11 +45,11 @@ class MessagesH(BaseHandler):
             request_data = json.loads(self.request.body.decode("utf-8"))
         except:
             errData['Cause'] = 'Check if request body is correct.'
-            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+            raise HTTPError(HTTPStatus.BAD_REQUEST)
         else:
             if len(request_data) != 3:
                 errData['Cause'] = 'Request body require 3 elements.'
-                raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                raise HTTPError(HTTPStatus.BAD_REQUEST)
             else:
                 # NOTE Check if got 3 arguments 
                 # text_message, sender_nick and receiver_nick
@@ -69,12 +62,12 @@ class MessagesH(BaseHandler):
                         pass 
                 except:
                     errData['Cause'] = 'Check if request body is correct.'
-                    raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                    raise HTTPError(HTTPStatus.BAD_REQUEST)
                 else:
                     # Check if message is not empty
                     if not request_data['text_message']:
                         errData['Cause'] = 'Message is empty.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                     # Check if sender exists
                     DataBase.db.cursor.execute(DataBase.queries.get_player_query, 
@@ -82,7 +75,7 @@ class MessagesH(BaseHandler):
                     s_nick = DataBase.db.cursor.fetchone()
                     if not s_nick:
                         errData['Cause'] = 'Sender nick is wrong.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                     # Check if receiver exists
                     DataBase.db.cursor.execute(DataBase.queries.get_player_query, 
@@ -90,7 +83,7 @@ class MessagesH(BaseHandler):
                     r_nick = DataBase.db.cursor.fetchone()
                     if not r_nick:
                         errData['Cause'] = 'Receiver nick is wrong.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                     # Check if there is a similar message
                     DataBase.db.cursor.execute(
@@ -129,57 +122,20 @@ class MessagesH(BaseHandler):
                         DataBase.db.cursor.execute(
                             DataBase.queries.inc_message_received_query,
                             [request_data['receiver_nick']])
-                        DataBase.db.conn.commit()    
+                        DataBase.db.conn.commit()      
+                        self.set_status(HTTPStatus.CREATED)  
                     elif noAddedMsg == 0:
                         response['Response'] = 'Message was not added.' 
 
                     messagesFetched = []
                     for records in dbRecord:
                         messagesFetched.append(buildMessageJSON_db(records))
-                    response['Message'] = messagesFetched     
+                    response['Message'] = messagesFetched 
                     self.write(response)
 
-
 # MessagesGetterH Handler 
-# ~/messages/{u_send},{u_receiv}
+# ~/messages/{sender_nick},{receiver_nick}
 class MessagesGetterH(BaseHandler):
-    # Check if modified
-    def check_modified_resp(self):
-        # Check etag: if equals then response is not modified
-        self.set_my_etag_header()
-        if self.check_etag_header():
-            # Vanish response
-            self._write_buffer = []
-            self.set_status(HTTPStatus.NOT_MODIFIED)
-            return
-        else:
-            # Etag changed so return with response body
-            return
-    # Override etag functions
-    def compute_etag(self):
-        return NULL
-    def compute_my_etag(self) -> Optional[str]:
-        """Computes the etag header to be used for this request.
-
-        By default uses a hash of the content written so far.
-
-        May be overridden to provide custom etag implementations,
-        or may return None to disable tornado's default etag support.
-        """
-        hasher = hashlib.sha1()
-        for part in self._write_buffer:
-            hasher.update(part)
-        return '"%s"' % hasher.hexdigest()
-    def set_my_etag_header(self) -> None:
-        """Sets the response's Etag header using ``self.compute_etag()``.
-
-        Note: no header will be set if ``compute_etag()`` returns ``None``.
-
-        This method is called automatically when the request is finished.
-        """
-        etag = self.compute_my_etag()
-        if etag is not None:
-            self.set_header("Etag", etag)
     def get(self, sender_nick, receiver_nick):
         """
         Description end-point
@@ -220,7 +176,7 @@ class MessagesGetterH(BaseHandler):
             "304":
                 description: 
                     Messages have not been modified since the last get.
-            "422":
+            "400":
                 description: Missing or wrong nick/nicks.
         """
         #EODescription end-point
@@ -241,86 +197,18 @@ class MessagesGetterH(BaseHandler):
             else: 
                 # Nick is wrong err.   
                 errData['Cause'] = 'Check nicks to correct.'
-                # 422 Error Code
-                raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
+                # 400 Error Code
+                raise HTTPError(HTTPStatus.BAD_REQUEST) 
         else: 
             # Nick is missing err.
             errData['Cause'] = 'Check for missing nicks.'
-            # 422 Error Code
-            raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
+            # 400 Error Code
+            raise HTTPError(HTTPStatus.BAD_REQUEST) 
 
 
-def getMessageFromDatabaseById(id):
-  DataBase.db.cursor.execute(DataBase.queries.get_message_byID_query, [id])
-  return DataBase.db.cursor.fetchone()
-def checkMessageDeleted(id):
-  if getMessageFromDatabaseById(id):
-    # If message exists raise error
-    errData['Cause'] = 'Server did not delete message successfully. Message still exists.'
-    raise HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR)
 # Messages Handler 
-# ~/messages 
+# ~/messages/{sender_nick},{receiver_nick}/{id}
 class MessagesDetailsH(BaseHandler):
-    # Check if etag match
-    def check_if_match(self) -> bool:
-        self.set_my_etag_header()
-        # Vanish get player response
-        self._write_buffer=[]
-        # Check if etag in request exists
-        req_etag = self.request.headers.get("If-Match", "")
-        # TODO check if it's legal to do If-None-Match = If-Match
-        self.request.headers['If-None-Match'] = req_etag
-        if req_etag:
-            # Check etag: if equals then entity is not modified
-            if not self.check_etag_header():
-                # Etag changed so entitiy is modified
-                errData['Cause'] = 'Entity changed.'
-                self.set_status(HTTPStatus.PRECONDITION_FAILED)
-                return False
-            else:
-                # Go on you got up-to-date entity
-                return True
-        else:
-            errData['Cause'] = 'ETag is missing.'
-            self.set_status(HTTPStatus.PRECONDITION_REQUIRED)
-            return False
-    # Check if modified
-    def check_modified_resp(self):
-        # Check etag: if equals then response is not modified
-        self.set_my_etag_header()
-        if self.check_etag_header():
-            # Vanish response
-            self._write_buffer = []
-            self.set_status(HTTPStatus.NOT_MODIFIED)
-            return
-        else:
-            # Etag changed so return with response body
-            return
-    # Override etag functions
-    def compute_etag(self):
-        return NULL
-    def compute_my_etag(self) -> Optional[str]:
-        """Computes the etag header to be used for this request.
-
-        By default uses a hash of the content written so far.
-
-        May be overridden to provide custom etag implementations,
-        or may return None to disable tornado's default etag support.
-        """
-        hasher = hashlib.sha1()
-        for part in self._write_buffer:
-            hasher.update(part)
-        return '"%s"' % hasher.hexdigest()
-    def set_my_etag_header(self) -> None:
-        """Sets the response's Etag header using ``self.compute_etag()``.
-
-        Note: no header will be set if ``compute_etag()`` returns ``None``.
-
-        This method is called automatically when the request is finished.
-        """
-        etag = self.compute_my_etag()
-        if etag is not None:
-            self.set_header("Etag", etag)
     def delete(self, sender_nick, receiver_nick, id):
         """
         Description end-point
@@ -364,7 +252,7 @@ class MessagesDetailsH(BaseHandler):
             "200":
                 description: 
                     Specific Message successfully deleted.
-            "422":
+            "400":
                 description: Missing nick.
             "404":
                 description: Message not found.
@@ -399,6 +287,7 @@ class MessagesDetailsH(BaseHandler):
                     # Delete Player From Database By Nick
                     DataBase.db.cursor.execute(DataBase.queries.delete_message_query, [id])
                     DataBase.db.conn.commit()
+                    # Err if message still exists
                     checkMessageDeleted(id)
                     self._headers['Content-Type'] = "text/html; charset=utf-8"
                     self.write("Message with id: " + id + " is successfully delted.")
@@ -411,8 +300,8 @@ class MessagesDetailsH(BaseHandler):
         # Nick is missing err.
         else:
             errData['Cause'] = 'Nicks or Id is missing.'
-            # 422 Error Code
-            raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
+            # 400 Error Code
+            raise HTTPError(HTTPStatus.BAD_REQUEST) 
     def patch(self, sender_nick, receiver_nick, id):
         """
         Description end-point
@@ -463,7 +352,7 @@ class MessagesDetailsH(BaseHandler):
             "200":
                 description: 
                     Specific message successfully updated (patched).
-            "422":
+            "400":
                 description: Nicks or message is missing.
             "404":
                 description: Id is wrong. Message not found.
@@ -530,15 +419,15 @@ class MessagesDetailsH(BaseHandler):
                         # Vanish response
                         self._write_buffer = []
                     self.write(json.dumps(data, sort_keys=True, indent=indents))
-                    return
-            # Nick is wrong err.  
+                    return 
             else:  
                 errData['Cause'] = 'Message not found.'
-                raise HTTPError(HTTPStatus.NOT_FOUND) # 422 Error Code
-        # Nick is missing err.
+                 # 404 Error Code
+                raise HTTPError(HTTPStatus.NOT_FOUND)
         else:
             errData['Cause'] = 'Nicks or message is missing.'
-            raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) # 422 Error Code
+            # 400 Error Code
+            raise HTTPError(HTTPStatus.BAD_REQUEST) 
     def put(self, sender_nick, receiver_nick, id):
         """
         Description end-point
@@ -589,14 +478,13 @@ class MessagesDetailsH(BaseHandler):
             "200":
                 description: 
                     Specific message successfully updated (patched).
-            "422":
-                description: Something is missing (Id or nicks).
+            "400":
+                description: 
+                    Something is missing (Id or nicks) or something in request body is wrong.
             "404":
                 description: Message not found. Id is wrong.
             "412":
                 description: Precondition Failed. Entity changed.
-            "417":
-                description: Something in request body is wrong.
             "428":
                 description: Precondition Required. Etag is missing.
         """
@@ -623,9 +511,10 @@ class MessagesDetailsH(BaseHandler):
                     request_data = json.loads(self.request.body.decode("utf-8"))
                     if len(request_data) != 3:
                         errData['Cause'] = 'Request body require 3 elements.'
-                        raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                        raise HTTPError(HTTPStatus.BAD_REQUEST)
                     else:
-                        #TODO Check if got 3 arguments = text_message, sender_nick and receiver_nick
+                        # NOTE Check if got 3 arguments: 
+                        # text_message, sender_nick and receiver_nick
                         try:
                             if request_data['text_message']:
                                 pass
@@ -635,12 +524,12 @@ class MessagesDetailsH(BaseHandler):
                                 pass 
                         except:
                             errData['Cause'] = 'Check if request body is correct.'
-                            raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                            raise HTTPError(HTTPStatus.BAD_REQUEST)
                         else:
                             # Check if message is not empty
                             if not request_data['text_message']:
                                 errData['Cause'] = 'Message is empty.'
-                                raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                                raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                             # Check if sender exists
                             DataBase.db.cursor.execute(DataBase.queries.get_player_query, 
@@ -648,7 +537,7 @@ class MessagesDetailsH(BaseHandler):
                             s_nick = DataBase.db.cursor.fetchone()
                             if not s_nick:
                                 errData['Cause'] = 'Sender nick is wrong.'
-                                raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                                raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                             # Check if receiver exists
                             DataBase.db.cursor.execute(DataBase.queries.get_player_query, 
@@ -656,7 +545,7 @@ class MessagesDetailsH(BaseHandler):
                             r_nick = DataBase.db.cursor.fetchone()
                             if not r_nick:
                                 errData['Cause'] = 'Receiver nick is wrong.'
-                                raise HTTPError(HTTPStatus.EXPECTATION_FAILED)
+                                raise HTTPError(HTTPStatus.BAD_REQUEST)
 
                             # UPDATE message 
                             query_data = (request_data['sender_nick'],
@@ -684,5 +573,23 @@ class MessagesDetailsH(BaseHandler):
         else:
             # Nick or id is missing err.
             errData['Cause'] = 'Something is missing (Id or nicks).'
-            # 422 Error Code
-            raise HTTPError(HTTPStatus.UNPROCESSABLE_ENTITY) 
+            # 400 Error Code
+            raise HTTPError(HTTPStatus.BAD_REQUEST) 
+
+# Usefull fun 
+def getMessageFromDatabaseById(id):
+  DataBase.db.cursor.execute(DataBase.queries.get_message_byID_query, [id])
+  return DataBase.db.cursor.fetchone() 
+def checkMessageDeleted(id):
+  if getMessageFromDatabaseById(id):
+    # If message exists raise error
+    errData['Cause'] = 'Server did not delete message successfully. Message still exists.'
+    raise HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR)          
+# Build JSON message from db record
+def buildMessageJSON_db(dbRecord):
+    message_json = {}
+    message_json['ID'] = dbRecord[0]
+    message_json['SENDER_NICK'] = dbRecord[1]
+    message_json['RECEIVER_NICK'] = dbRecord[2]
+    message_json['TEXT_MESSAGE'] = dbRecord[3]
+    return message_json
