@@ -574,7 +574,7 @@ class MessagesDetailsH(BaseHandler):
             errData['Cause'] = 'Something is missing (Id or nicks).'
             # 400 Error Code
             raise HTTPError(HTTPStatus.BAD_REQUEST) 
-
+ 
 # Usefull fun 
 def getMessageFromDatabaseById(id):
   DataBase.db.cursor.execute(DataBase.queries.get_message_byID_query, [id])
