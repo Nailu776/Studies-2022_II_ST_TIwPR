@@ -205,8 +205,7 @@ class MessagesGetterH(BaseHandler):
             # 400 Error Code
             raise HTTPError(HTTPStatus.BAD_REQUEST) 
 
-
-# Messages Handler 
+# Messages Details Handler 
 # ~/messages/{sender_nick},{receiver_nick}/{id}
 class MessagesDetailsH(BaseHandler):
     def delete(self, sender_nick, receiver_nick, id):
