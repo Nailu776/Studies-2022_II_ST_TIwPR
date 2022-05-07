@@ -253,8 +253,10 @@ class PlayerMergesDetailsH(BaseHandler):
             -   name: pm_id
                 in: path
                 description: Id of merge.
+                required: true
                 schema:
-                    type: string
+                    type: integer
+                    format: int64
         responses:
             "200":
                 description: 
