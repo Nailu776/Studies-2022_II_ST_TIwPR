@@ -80,7 +80,7 @@ class HistoriesH(BaseHandler):
                     Histories not changed.
             "404":
                 description:
-                    Histories not found. Perhaps Database is empty.
+                    Histories not found. Perhaps Database is empty or not found on this page.
         """
         #EODescription end-point
 
@@ -113,7 +113,7 @@ class HistoriesH(BaseHandler):
             self.write(response)
             self.check_modified_resp()
         else: 
-            # Db is empty.   
+            # Db is empty.   Or not found on this page
             errData['Cause'] = 'Histories not found.'
             # 404 Error Code
             raise HTTPError(HTTPStatus.NOT_FOUND) 
@@ -198,7 +198,7 @@ class HistoriesDetailsH(BaseHandler):
                         $ref: '#/components/schemas/HistoriesSchema'
             required: true
         responses:
-            '200':
+            '201':
                 description: New game history added.
             '400':
                 description: Expected 3 fulfilled JSON elements in request body.
