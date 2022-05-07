@@ -20,4 +20,5 @@ class HistoriesSchema(object):
                         type: string
                     points:
                         type: integer
+                        format: int64
     """
