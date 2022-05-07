@@ -7,9 +7,6 @@ class PlayerSchema(object):
     type: object
     description: Player model representation
     properties:
-        id:
-            type: integer
-            format: int64
         nick:
             type: string
         points_record:
