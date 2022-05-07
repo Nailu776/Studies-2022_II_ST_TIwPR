@@ -178,6 +178,8 @@ class MessagesGetterH(BaseHandler):
                     Messages have not been modified since the last get.
             "400":
                 description: Missing or wrong nick/nicks.
+            "404":
+                description: Messages not found. Check nicks.
         """
         #EODescription end-point
               
@@ -196,9 +198,9 @@ class MessagesGetterH(BaseHandler):
                 self.check_modified_resp()
             else: 
                 # Nick is wrong err.   
-                errData['Cause'] = 'Check nicks to correct.'
-                # 400 Error Code
-                raise HTTPError(HTTPStatus.BAD_REQUEST) 
+                errData['Cause'] = 'Messages not found. Check nicks to correct.'
+                # 404 Error Code
+                raise HTTPError(HTTPStatus.NOT_FOUND) 
         else: 
             # Nick is missing err.
             errData['Cause'] = 'Check for missing nicks.'
@@ -267,8 +269,9 @@ class MessagesDetailsH(BaseHandler):
         #EODescription end-point    
 
         if sender_nick and receiver_nick and id:
-            dbRecord = getMessageFromDatabaseById(id)
+            dbRecord = getMessageFromDatabaseById_Snick_Rnick(id,sender_nick,receiver_nick)
             if dbRecord:
+                print(dbRecord)
                 # Check precondition.
                 response = {}
                 response['Response'] = 'Specific message successfully geted.'
@@ -363,7 +366,7 @@ class MessagesDetailsH(BaseHandler):
         #EODescription end-point
          
         if sender_nick and receiver_nick and id:
-            dbRecord = getMessageFromDatabaseById(id)
+            dbRecord = getMessageFromDatabaseById_Snick_Rnick(id,sender_nick,receiver_nick)
             if dbRecord:
                 # Check precondition.
                 response = {}
@@ -409,7 +412,7 @@ class MessagesDetailsH(BaseHandler):
                     else:
                         DataBase.db.conn.commit()
                         # Calculate new etag 
-                        dbRecord = getMessageFromDatabaseById(id)
+                        dbRecord = getMessageFromDatabaseById_Snick_Rnick(id,sender_nick,receiver_nick)
                         response = {}
                         response['Response'] = 'Specific message successfully geted.'
                         response['Message'] = buildMessageJSON_db(dbRecord)
@@ -490,7 +493,7 @@ class MessagesDetailsH(BaseHandler):
         #EODescription end-point    
 
         if sender_nick and receiver_nick and id:
-            dbRecord = getMessageFromDatabaseById(id)
+            dbRecord = getMessageFromDatabaseById_Snick_Rnick(id,sender_nick,receiver_nick)
             if dbRecord:
                 # Check precondition.
                 response = {}
@@ -553,7 +556,7 @@ class MessagesDetailsH(BaseHandler):
                                 DataBase.queries.put_msg_query, query_data)
                             DataBase.db.conn.commit()
                             # Calculate new etag 
-                            dbRecord = getMessageFromDatabaseById(id)
+                            dbRecord = getMessageFromDatabaseById_Snick_Rnick(id,sender_nick,receiver_nick)
                             data = {}
                             data['Message before update'] = response['Message']
                             response['Message'] = buildMessageJSON_db(dbRecord)
@@ -576,6 +579,10 @@ class MessagesDetailsH(BaseHandler):
             raise HTTPError(HTTPStatus.BAD_REQUEST) 
  
 # Usefull fun 
+def getMessageFromDatabaseById_Snick_Rnick(id,sender_nick,receiver_nick):
+  DataBase.db.cursor.execute(DataBase.queries.get_message_byID_SN_RN_query, [id, sender_nick, receiver_nick])
+  return DataBase.db.cursor.fetchone() 
+# This fun ignores nicks
 def getMessageFromDatabaseById(id):
   DataBase.db.cursor.execute(DataBase.queries.get_message_byID_query, [id])
   return DataBase.db.cursor.fetchone() 
