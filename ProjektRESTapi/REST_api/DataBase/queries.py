@@ -44,6 +44,8 @@ NO_MSG_RECEIVED = NO_MSG_RECEIVED + 1 WHERE NICK = ?'''
 get_messages_query = '''SELECT * FROM MESSAGES WHERE SENDER_NICK = ? AND
                      RECEIVER_NICK = ? '''
 get_message_byID_query = '''SELECT * FROM MESSAGES WHERE ID = ?'''
+get_message_byID_SN_RN_query = '''SELECT * FROM MESSAGES WHERE 
+                            ID = ? AND SENDER_NICK = ? AND RECEIVER_NICK = ?'''
 delete_message_query = '''DELETE FROM MESSAGES WHERE ID=?'''
 patch_msg_sender_nick_query = '''UPDATE MESSAGES SET SENDER_NICK = ? WHERE ID = ?'''
 patch_msg_receiver_nick_query = '''UPDATE MESSAGES SET RECEIVER_NICK = ? WHERE ID = ?'''
