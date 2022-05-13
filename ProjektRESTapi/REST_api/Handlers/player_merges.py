@@ -40,6 +40,14 @@ class PlayerMergesH(BaseHandler):
         """
         #EODescription end-point
 
+        
+        # TODO CHECK
+        # Check if content type == app json 
+        contentType = self.request.headers.get("content-type", "")
+        # print(contentType)
+        if(contentType != "application/json"):
+            errData['Cause'] = 'Expected json.'
+            raise HTTPError(HTTPStatus.BAD_REQUEST)
         try:
             # Decode request data
             request_data = json.loads(self.request.body.decode("utf-8"))
