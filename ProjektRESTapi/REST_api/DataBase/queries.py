@@ -16,7 +16,7 @@ patch_player_sended_query = '''UPDATE PLAYERS SET NO_MSG_SENDED = ? WHERE NICK =
 put_player_query = '''UPDATE PLAYERS SET NICK = ?, RECORD =?, 
                     NO_MSG_RECEIVED = ?, NO_MSG_SENDED =? WHERE NICK = ?'''
 delete_player_query = '''DELETE FROM PLAYERS WHERE NICK=?'''
-                      
+counter_players_query = '''SELECT COUNT (*) FROM PLAYERS'''     
 # MESSAGES                      
 queryMessagesTable = """CREATE TABLE IF NOT EXISTS MESSAGES (
                         ID INTEGER PRIMARY KEY,
@@ -71,6 +71,7 @@ poe_post_dummy_history_query = '''INSERT INTO HISTORIES
 poe_put_history_query= '''UPDATE HISTORIES SET  
                       DATE = ?, G_NAME = ?, PLAYERS_TAB = ? 
                       WHERE ID = ?'''
+counter_hists_query = '''SELECT COUNT (*) FROM HISTORIES'''  
 
 # Player Merges
 queryPlayerMergesTable = """CREATE TABLE IF NOT EXISTS PLAYER_MERGES (
