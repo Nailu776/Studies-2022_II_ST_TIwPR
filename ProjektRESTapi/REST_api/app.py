@@ -1,4 +1,4 @@
-# import this                 #__Easter Egg__: The Zen of Python, by Tim Peters 
+import this                 #__Easter Egg__: The Zen of Python, by Tim Peters 
 from tornado.web            import Application, url, ErrorHandler
 from tornado.ioloop         import IOLoop
 from tornado                import options 
@@ -25,7 +25,7 @@ def signal_handler(sig, frame):
 
 class Application(Application):
     _routes = [
-        url("/players", PlayersH, 
+        url("/players/", PlayersH, 
             name= "Players Handler"),
         # TODO ? while there is no nick for 400 instead of 404 
         url(r"/players/([^/]+)", PlayersDetailsH, 
