@@ -83,6 +83,17 @@ class PlayersH(BaseHandler):
     response['Response'] = 'The ranking list successfully geted.'
     response['Players'] = players_table
     self.write(response)
+    # Number of players in table
+    DataBase.db.cursor.execute(
+      DataBase.queries.counter_players_query)
+    no_players = DataBase.db.cursor.fetchone()
+    # print(no_players[0])
+    # Add link header with number of players
+    if((no_players[0] - page - limit) > 0):
+      nextpage = " <http://localhost:8000/players/?limit=" + str(limit) + "&page=" + str(int((page/limit)+2)) + ">; rel=next; NumOf Players: " + str(no_players[0])
+    else:
+      nextpage = "No next page. Num of players: " + str(no_players[0])
+    self.add_header('Link', nextpage)
     self.check_modified_resp()
   def post(self):
     """
@@ -98,6 +109,10 @@ class PlayersH(BaseHandler):
       requestBody: 
         description: New player attributes.
         content:
+            # text/html:
+            #   schema:
+            #     $ref: '#/components/schemas/PlayerPostSchema'
+          # TODO SWAP AFTER DEBUG CONTENT TYPE CHECK
           application/json:
             schema:
               $ref: '#/components/schemas/PlayerPostSchema'
@@ -106,10 +121,17 @@ class PlayersH(BaseHandler):
           '201':
             description: New player created.
           '400':
-            description: A player with this nick perhaps already exists.
+            description: A player with this nick perhaps already exists. Or expected json in req body.
     """
     #EODescription end-point
-    
+
+    # TODO CHECK
+    # Check if content type == app json
+    contentType = self.request.headers.get("content-type", "")
+    if(contentType != "application/json"):
+      errData['Cause'] = 'Expected json.'
+      print(contentType)
+      raise HTTPError(HTTPStatus.BAD_REQUEST)
     try:
       # Try to add new player
       request_data = json.loads(self.request.body.decode("utf-8"))\
@@ -314,7 +336,7 @@ class PlayersDetailsH(BaseHandler):
                   Specific player successfully updated (patched).
           "400":
             description: 
-              Nick is missing or something in request body is not in correct format.
+              Nick is missing or something in request body is not in correct format. Or expected json in req body.
           "404":
             description: Nick is wrong.
           "412":
@@ -324,6 +346,13 @@ class PlayersDetailsH(BaseHandler):
     """
     #EODescription end-point 
   
+    # TODO CHECK 
+    # Check if content type == app json
+    contentType = self.request.headers.get("content-type", "")
+    # print(contentType)
+    if(contentType != "application/json"):
+      errData['Cause'] = 'Expected json.'
+      raise HTTPError(HTTPStatus.BAD_REQUEST)
     if nick:
       dbRecord = getPlayerFromDatabaseByNick(nick)
       if dbRecord:
@@ -435,7 +464,7 @@ class PlayersDetailsH(BaseHandler):
                   Specific player successfully updated (puted).
           "400":
             description: 
-              Nick is missing or something in request body is not in correct format.
+              Nick is missing or something in request body is not in correct format. Or expected json in req body.
           "404":
             description: Nick is wrong.
           "412":
@@ -445,6 +474,13 @@ class PlayersDetailsH(BaseHandler):
     """
     #EODescription end-point  
       
+    # TODO CHECK 
+    # Check if content type == app json
+    contentType = self.request.headers.get("content-type", "")
+    # print(contentType)
+    if(contentType != "application/json"):
+      errData['Cause'] = 'Expected json.'
+      raise HTTPError(HTTPStatus.BAD_REQUEST)
     if nick:
       dbRecord = getPlayerFromDatabaseByNick(nick)
       if dbRecord:
