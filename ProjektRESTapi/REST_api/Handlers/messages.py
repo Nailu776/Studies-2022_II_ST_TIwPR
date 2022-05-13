@@ -40,6 +40,13 @@ class MessagesH(BaseHandler):
         """
         #EODescription end-point
 
+        # TODO CHECK
+        # Check if content type == app json 
+        contentType = self.request.headers.get("content-type", "")
+        # print(contentType)
+        if(contentType != "application/json"):
+            errData['Cause'] = 'Expected json.'
+            raise HTTPError(HTTPStatus.BAD_REQUEST)
         try:
             # Decode request data
             request_data = json.loads(self.request.body.decode("utf-8"))
@@ -355,7 +362,7 @@ class MessagesDetailsH(BaseHandler):
                 description: 
                     Specific message successfully updated (patched).
             "400":
-                description: Nicks or message is missing.
+                description: Nicks or message is missing. Expected JSON.
             "404":
                 description: Id is wrong. Message not found.
             "412":
@@ -364,7 +371,15 @@ class MessagesDetailsH(BaseHandler):
                 description: Precondition Required. Etag is missing.
         """
         #EODescription end-point
-         
+
+        
+        # TODO CHECK
+        # Check if content type == app json 
+        contentType = self.request.headers.get("content-type", "")
+        # print(contentType)
+        if(contentType != "application/json"):
+            errData['Cause'] = 'Expected json.'
+            raise HTTPError(HTTPStatus.BAD_REQUEST) 
         if sender_nick and receiver_nick and id:
             dbRecord = getMessageFromDatabaseById_Snick_Rnick(id,sender_nick,receiver_nick)
             if dbRecord:
@@ -482,7 +497,7 @@ class MessagesDetailsH(BaseHandler):
                     Specific message successfully updated (patched).
             "400":
                 description: 
-                    Something is missing (Id or nicks) or something in request body is wrong.
+                    Something is missing (Id or nicks) or something in request body is wrong.  Expected JSON.
             "404":
                 description: Message not found. Id is wrong.
             "412":
@@ -492,6 +507,14 @@ class MessagesDetailsH(BaseHandler):
         """
         #EODescription end-point    
 
+        
+        # TODO CHECK
+        # Check if content type == app json 
+        contentType = self.request.headers.get("content-type", "")
+        # print(contentType)
+        if(contentType != "application/json"):
+            errData['Cause'] = 'Expected json.'
+            raise HTTPError(HTTPStatus.BAD_REQUEST)
         if sender_nick and receiver_nick and id:
             dbRecord = getMessageFromDatabaseById_Snick_Rnick(id,sender_nick,receiver_nick)
             if dbRecord:
