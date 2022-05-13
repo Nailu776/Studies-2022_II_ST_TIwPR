@@ -24,7 +24,7 @@ class HistoriesH(BaseHandler):
             exactly once by POST-PUT method.
         operationId: addHistory
         responses:
-            '200':
+            '201':
                 description: PUT history on location in response.
         """
         # EODescription end-point
@@ -36,7 +36,8 @@ class HistoriesH(BaseHandler):
         response['Response'] = 'PUT history on location in response header.'
         response['Location'] = dbRecord
         self.write(response)
-        self.add_header('Location', dbRecord)
+        self.set_status(HTTPStatus.CREATED) 
+        self.add_header('Location', "/histories/" + str(dbRecord))
     def get(self):
         """
         Description end-point
@@ -111,6 +112,17 @@ class HistoriesH(BaseHandler):
                 historiesTab.append(buildHistoryJSON_db(records))
             response['Histories'] = historiesTab
             self.write(response)
+            # # Number of histories in table
+            # DataBase.db.cursor.execute(
+            # DataBase.queries.counter_hists_query)
+            # no_hists = DataBase.db.cursor.fetchone()
+            # # print(no_hists[0])
+            # # Add link header with number of histories
+            # if((no_hists[0] - page - limit) > 0):
+            #     nextpage = "Next-Page: http://localhost:8000/histories/?limit=" + str(limit) + "&page=" + str(int((page/limit)+2)) + " NumOf Players: " + str(no_hists[0])
+            # else:
+            #     nextpage = "No next page. Num of players: " + str(no_hists[0])
+            # self.add_header('Link', nextpage)
             self.check_modified_resp()
         else: 
             # Db is empty.   Or not found on this page
@@ -198,14 +210,22 @@ class HistoriesDetailsH(BaseHandler):
                         $ref: '#/components/schemas/HistoriesSchema'
             required: true
         responses:
-            '201':
+            '200':
                 description: New game history added.
             '400':
-                description: Expected 3 fulfilled JSON elements in request body.
+                description: Expected 3 fulfilled JSON elements in request body. 
             '500':
                 description: Something unexpected happened and new History does not exist.
         """
         # EODescription end-point 
+
+        # TODO CHECK
+        # Check if content type == app json 
+        contentType = self.request.headers.get("content-type", "")
+        # print(contentType)
+        if(contentType != "application/json"):
+            errData['Cause'] = 'Expected json.'
+            raise HTTPError(HTTPStatus.BAD_REQUEST)
         try:
             h_id = int(g_id)
             DataBase.db.cursor.execute(
@@ -294,7 +314,7 @@ class HistoriesDetailsH(BaseHandler):
                         response = {}
                         response['Response'] = 'New history added.'
                         response['Game History'] = buildHistoryJSON_db(dbRecord) 
-                        self.set_status(HTTPStatus.CREATED) 
+                        self.set_status(HTTPStatus.OK) 
                         self.write(response)
                     else:
                         errData['Cause'] = 'New history was not added.'
