@@ -89,7 +89,8 @@ class HistoriesH(BaseHandler):
         limit = self.get_query_argument("limit", None)
         page = self.get_query_argument("page", None)
         if page is None or limit is None:
-            page = 0
+            page = 1    # Page 1 --> offset 0
+            offset = 0
             limit = 10
         else: 
             limit = int(limit) 
@@ -97,10 +98,12 @@ class HistoriesH(BaseHandler):
                 limit = 10
             page = int(page)
             if page < 1:
-                page = 0
-            else:
-                page = (page - 1) * limit
-        get_query_data = [limit, page]
+                page = 1 # Page 1 --> offset 0
+                offset = 0
+            else: # Page >= 1 --> offset = (page - 1) * limit
+                offset = (page - 1) * limit
+                # page = (page - 1) * limit
+        get_query_data = [limit, offset]
         DataBase.db.cursor.execute(
             DataBase.queries.get_all_histories, get_query_data)
         dbRecord = DataBase.db.cursor.fetchall()
@@ -109,20 +112,13 @@ class HistoriesH(BaseHandler):
             response['Response'] = 'Histories successfully geted.'
             historiesTab = []
             for records in dbRecord:
-                historiesTab.append(buildHistoryJSON_db(records))
+                if(records[3] != "DummyHistory"):
+                    historiesTab.append(buildHistoryJSON_db(records))
             response['Histories'] = historiesTab
             self.write(response)
-            # # Number of histories in table
-            # DataBase.db.cursor.execute(
-            # DataBase.queries.counter_hists_query)
-            # no_hists = DataBase.db.cursor.fetchone()
-            # # print(no_hists[0])
-            # # Add link header with number of histories
-            # if((no_hists[0] - page - limit) > 0):
-            #     nextpage = "Next-Page: http://localhost:8000/histories/?limit=" + str(limit) + "&page=" + str(int((page/limit)+2)) + " NumOf Players: " + str(no_hists[0])
-            # else:
-            #     nextpage = "No next page. Num of players: " + str(no_hists[0])
-            # self.add_header('Link', nextpage)
+            endpoint = "histories"
+            counter_query = DataBase.queries.counter_hists_query
+            self.add_link_header(endpoint, counter_query, DataBase.db.cursor, offset, limit, page)
             self.check_modified_resp()
         else: 
             # Db is empty.   Or not found on this page

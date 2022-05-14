@@ -60,7 +60,8 @@ class PlayersH(BaseHandler):
     limit = self.get_query_argument("limit", None)
     page = self.get_query_argument("page", None)
     if page is None or limit is None:
-      page = 0
+      page = 1    # Page 1 --> offset 0
+      offset = 0
       limit = 10
     else: 
       limit = int(limit) 
@@ -68,32 +69,27 @@ class PlayersH(BaseHandler):
         limit = 10
       page = int(page)
       if page < 1:
-        page = 0
-      else:
-        page = (page - 1) * limit
-    get_query_data = [limit, page]
+        page = 1 # Page 1 --> offset 0
+        offset = 0
+      else: # Page >= 1 --> offset = (page - 1) * limit
+        offset = (page - 1) * limit
+        # page = (page - 1) * limit
+    get_query_data = [limit, offset]
     # Get list of players from db
     DataBase.db.cursor.execute(
       DataBase.queries.get_players_query, get_query_data)
     records = DataBase.db.cursor.fetchall()
     players_table = []
     for dbRecord in records:
-        players_table.append(buildPlayerJSON_db(dbRecord))
+        if(dbRecord[0]!= "DELETED_PLAYER"):
+          players_table.append(buildPlayerJSON_db(dbRecord))
     response = {}
     response['Response'] = 'The ranking list successfully geted.'
     response['Players'] = players_table
     self.write(response)
-    # Number of players in table
-    DataBase.db.cursor.execute(
-      DataBase.queries.counter_players_query)
-    no_players = DataBase.db.cursor.fetchone()
-    # print(no_players[0])
-    # Add link header with number of players
-    if((no_players[0] - page - limit) > 0):
-      nextpage = " <http://localhost:8000/players/?limit=" + str(limit) + "&page=" + str(int((page/limit)+2)) + ">; rel=next; NumOf Players: " + str(no_players[0])
-    else:
-      nextpage = "No next page. Num of players: " + str(no_players[0])
-    self.add_header('Link', nextpage)
+    endpoint = "players"
+    counter_query = DataBase.queries.counter_players_query
+    self.add_link_header(endpoint, counter_query, DataBase.db.cursor, offset, limit, page)
     self.check_modified_resp()
   def post(self):
     """
