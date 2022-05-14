@@ -87,6 +87,40 @@ class BaseHandler(RequestHandler):
     self.write("HTTP error code: {} {}\n".format(str(status),
                 http.client.responses[status]))  
     self.write("Cause: " + errData['Cause'])
+  # Add link header with prev and/or next page
+  def add_link_header(self, endpoint, counter_query, cursor, offset, limit, page):
+    # Number of entities in table
+    cursor.execute(counter_query)
+    no_entities = cursor.fetchone()
+    # Add link header next or/and prev page
+    if ((no_entities[0] - offset - limit) > 0) and (offset > 0):
+      # Number of entities - omitted offset - getted limit > 0 --> got next page
+      # and
+      # offset > 0 --> got prev page
+      # print("case 1 " + str(page) + " " + str(limit) + " " + str(no_entities[0]) )
+      nextpage = "<http://localhost:8000/"+ endpoint + "/?limit=" + str(limit) + "&page=" + str(page + 1) + ">; rel=\"next\"; "
+      prevpage = "<http://localhost:8000/"+ endpoint + "/?limit=" + str(limit) + "&page=" + str(page - 1) + ">; rel=\"prev\"; "
+      self.add_header('Link', nextpage + prevpage)
+    elif (offset > 0):
+      # NOTE if you get e.g. page 10 of 2 pages you will get nothing + link to page 9 that will also give nothing.
+      # offset > 0 --> got prev page ==> if so then ((no_entities[0] - offset - limit) <= 0) --> no next page
+      # print("case 2 " + str(page) + " " + str(limit) + " " + str(no_entities[0]) )
+      prevpage = "<http://localhost:8000/"+ endpoint + "/?limit=" + str(limit) + "&page=" + str(int(page - 1)) + ">; rel=\"prev\"; "
+      self.add_header('Link', prevpage)
+    elif ((no_entities[0] - offset - limit) > 0):
+      # Number of entities - omitted offset - getted limit > 0 --> got next page
+      # ==> if so then offset == 0 --> no prev page
+      # print("case 3 " + str(page) + " " + str(limit) + " " + str(no_entities[0]) )
+      nextpage = "<http://localhost:8000/"+ endpoint + "/?limit=" + str(limit) + "&page=" + str(page + 1) + ">; rel=\"next\"; "
+      self.add_header('Link', nextpage)
+    else:
+      # print("case 4 " + "Nothing more to get.")
+      # Interesting
+      # offset == 0
+      # and
+      # ((no_entities[0] - offset - limit) <= 0)
+      # so nothing to get and also nothing More to get
+      pass
 
 class ErrorHandler(ErrorHandler, BaseHandler):
     pass
