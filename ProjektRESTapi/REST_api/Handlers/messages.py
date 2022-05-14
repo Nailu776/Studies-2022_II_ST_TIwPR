@@ -29,6 +29,10 @@ class MessagesH(BaseHandler):
                 application/json:
                     schema:
                         $ref: '#/components/schemas/MessagePostSchema'
+                # NOTE text/html to DEBUG CONTENT TYPE CHECKER
+                text/html:
+                    schema:
+                        $ref: '#/components/schemas/MessagePostSchema'
             required: true
         responses:
             '201':
@@ -40,7 +44,6 @@ class MessagesH(BaseHandler):
         """
         #EODescription end-point
 
-        # TODO CHECK
         # Check if content type == app json 
         contentType = self.request.headers.get("content-type", "")
         # print(contentType)
@@ -357,6 +360,10 @@ class MessagesDetailsH(BaseHandler):
                 application/json:
                     schema:
                         $ref: '#/components/schemas/MessagePostSchema'
+                # NOTE text/html to DEBUG CONTENT TYPE CHECKER
+                text/html:
+                    schema:
+                        $ref: '#/components/schemas/MessagePostSchema'
         responses:
             "200":
                 description: 
@@ -372,8 +379,6 @@ class MessagesDetailsH(BaseHandler):
         """
         #EODescription end-point
 
-        
-        # TODO CHECK
         # Check if content type == app json 
         contentType = self.request.headers.get("content-type", "")
         # print(contentType)
@@ -491,6 +496,10 @@ class MessagesDetailsH(BaseHandler):
                 application/json:
                     schema:
                         $ref: '#/components/schemas/MessagePostSchema'
+                # NOTE text/html to DEBUG CONTENT TYPE CHECKER
+                text/html:
+                    schema:
+                        $ref: '#/components/schemas/MessagePostSchema'
         responses:
             "200":
                 description: 
@@ -507,8 +516,6 @@ class MessagesDetailsH(BaseHandler):
         """
         #EODescription end-point    
 
-        
-        # TODO CHECK
         # Check if content type == app json 
         contentType = self.request.headers.get("content-type", "")
         # print(contentType)

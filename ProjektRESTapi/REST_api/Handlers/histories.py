@@ -208,6 +208,10 @@ class HistoriesDetailsH(BaseHandler):
                 application/json:
                     schema:
                         $ref: '#/components/schemas/HistoriesSchema'
+                # NOTE text/html to DEBUG CONTENT TYPE CHECKER
+                text/html:
+                    schema:
+                        $ref: '#/components/schemas/HistoriesSchema'
             required: true
         responses:
             '200':
@@ -219,7 +223,6 @@ class HistoriesDetailsH(BaseHandler):
         """
         # EODescription end-point 
 
-        # TODO CHECK
         # Check if content type == app json 
         contentType = self.request.headers.get("content-type", "")
         # print(contentType)

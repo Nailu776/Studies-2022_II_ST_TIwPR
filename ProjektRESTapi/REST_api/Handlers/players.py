@@ -109,11 +109,11 @@ class PlayersH(BaseHandler):
       requestBody: 
         description: New player attributes.
         content:
-            # text/html:
-            #   schema:
-            #     $ref: '#/components/schemas/PlayerPostSchema'
-          # TODO SWAP AFTER DEBUG CONTENT TYPE CHECK
           application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerPostSchema'
+          # NOTE text/html to DEBUG CONTENT TYPE CHECKER
+          text/html:
             schema:
               $ref: '#/components/schemas/PlayerPostSchema'
         required: true
@@ -121,16 +121,15 @@ class PlayersH(BaseHandler):
           '201':
             description: New player created.
           '400':
-            description: A player with this nick perhaps already exists. Or expected json in req body.
+            description: Nick not unique or bad JSON.
     """
     #EODescription end-point
 
-    # TODO CHECK
     # Check if content type == app json
     contentType = self.request.headers.get("content-type", "")
+    # print(contentType)
     if(contentType != "application/json"):
       errData['Cause'] = 'Expected json.'
-      print(contentType)
       raise HTTPError(HTTPStatus.BAD_REQUEST)
     try:
       # Try to add new player
@@ -146,7 +145,7 @@ class PlayersH(BaseHandler):
         [request_data['nick']])
       dbRecord = DataBase.db.cursor.fetchone()
     except:
-      errData['Cause'] = 'A player with this nick perhaps already exists.'
+      errData['Cause'] = 'Nick not unique or bad JSON.'
       raise HTTPError(HTTPStatus.BAD_REQUEST)
     else:
       response = {}
@@ -330,6 +329,10 @@ class PlayersDetailsH(BaseHandler):
           application/json:
             schema:
               $ref: '#/components/schemas/PlayerUpdateSchema'
+          # NOTE text/html to DEBUG CONTENT TYPE CHECKER
+          text/html:
+            schema:
+              $ref: '#/components/schemas/PlayerUpdateSchema'
       responses:
           "200":
               description: 
@@ -346,7 +349,6 @@ class PlayersDetailsH(BaseHandler):
     """
     #EODescription end-point 
   
-    # TODO CHECK 
     # Check if content type == app json
     contentType = self.request.headers.get("content-type", "")
     # print(contentType)
@@ -458,6 +460,10 @@ class PlayersDetailsH(BaseHandler):
           application/json:
             schema:
               $ref: '#/components/schemas/PlayerUpdateSchema'
+          # NOTE text/html to DEBUG CONTENT TYPE CHECKER
+          text/html:
+            schema:
+              $ref: '#/components/schemas/PlayerUpdateSchema'
       responses:
           "200":
               description: 
@@ -473,8 +479,7 @@ class PlayersDetailsH(BaseHandler):
             description: Precondition Required. Etag is missing.
     """
     #EODescription end-point  
-      
-    # TODO CHECK 
+    
     # Check if content type == app json
     contentType = self.request.headers.get("content-type", "")
     # print(contentType)

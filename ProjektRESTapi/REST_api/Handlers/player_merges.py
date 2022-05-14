@@ -28,6 +28,10 @@ class PlayerMergesH(BaseHandler):
                 application/json:
                     schema:
                         $ref: '#/components/schemas/PlayerMergesSchema'
+                # NOTE text/html to DEBUG CONTENT TYPE CHECKER
+                text/html:
+                    schema:
+                        $ref: '#/components/schemas/PlayerMergesSchema'
             required: true
         responses:
             '201':
@@ -40,8 +44,6 @@ class PlayerMergesH(BaseHandler):
         """
         #EODescription end-point
 
-        
-        # TODO CHECK
         # Check if content type == app json 
         contentType = self.request.headers.get("content-type", "")
         # print(contentType)
@@ -60,7 +62,6 @@ class PlayerMergesH(BaseHandler):
                 raise HTTPError(HTTPStatus.BAD_REQUEST)
             else:
                 # NOTE Check if got 4 arguments 
-                # TODO Find out better method date, nick_first, nick_secound and nick_finall
                 try:
                     if request_data['date']:
                         pass
