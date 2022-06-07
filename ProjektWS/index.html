@@ -1,6 +1,17 @@
+<!DOCTYPE html>
 <html>
     <head>
-        <script type="text/javascript" src="{{ static_url('wsclient.js') }}"></script>
-        TEST echo server
+        <meta charset="utf-8">
+        <title>WebSocket Snake</title>
+        <link rel="stylesheet" type="text/css"
+            href="{{ static_url('styles.css') }}">
     </head>
+    <body>
+        <canvas id="mySnakeCanvas" width="800" height="800">
+            Your browser does not support the HTML canvas tag.
+        </canvas>
+        <script type="text/javascript" 
+            src="{{ static_url('wsclient.js') }}">
+        </script>
+    </body>
 </html>
