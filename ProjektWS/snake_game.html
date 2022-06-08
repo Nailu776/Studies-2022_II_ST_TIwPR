@@ -7,9 +7,20 @@
             href="{{ static_url('styles.css') }}">
     </head>
     <body>
-        <canvas id="mySnakeCanvas" width="800" height="800">
-            Your browser does not support the HTML canvas tag.
-        </canvas>
+        <h1>Snake for two (1vs1)</h1>
+        <div class="row">
+          <div class="column">
+            <input type="text" placeholder="Enter game id" id="game_id">
+          </div>
+          <div class="column" >
+            <input type="submit" id="submit_btn" value="New Game">
+          </div>
+        </div>
+        <div class="row">
+          <canvas id="mySnakeCanvas" width="800" height="800">
+              Your browser does not support the HTML canvas tag.
+          </canvas>
+        </div>
         <script type="text/javascript" 
             src="{{ static_url('wsclient.js') }}">
         </script>
