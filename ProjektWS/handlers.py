@@ -5,7 +5,7 @@ from logg_config import logger
 class RenderHandler(RequestHandler):
     # Get render index html
     def get(self):
-        self.render("index.html")
+        self.render("snake_game.html")
 
 class WSHandler(tornado.websocket.WebSocketHandler):
 
