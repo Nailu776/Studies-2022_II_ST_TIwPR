@@ -191,8 +191,16 @@ function direction_control(event)
       }
       break;
   }
-  // TODO: Move snake on key down press
-  // move();
+  // Move snake on key down press
+  move();
+  // Clear whole canvas
+  clearCanvas();
+  // Draw cleared food
+  drawFood();
+  // Draw new snake
+  drawSnake();
+  // Check if it is end of the game
+  // if (is_end()) return;
 }
 // TODO: Serwer sending end of game after hitting player
 function is_end()
@@ -236,7 +244,7 @@ function main_loop() {
     drawSnake();
     // Call main again
     main_loop();
-  }, 100)
+  }, 1000)
 }
 // Start main loop
 main_loop();
