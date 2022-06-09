@@ -8,7 +8,7 @@ var context = board.getContext('2d');
 // Set global alpha - to notice when snake is folding 
 context.globalAlpha = 0.7;
 // Move listener
-// TODO: delete
+// NOTE: to make it single player before starting game:
 // document.addEventListener("keydown", direction_control);
 // Food params
 let food = {
@@ -66,6 +66,7 @@ function init_player_a(){
   init_snake_body();
   // Start main loop
   main_loop();
+  gen_food();
 }
 // Init Secound player B
 function init_player_b(){
@@ -77,6 +78,7 @@ function init_player_b(){
   init_snake_body();
   // Start main loop
   main_loop();
+  gen_food();
 }
 // Init snake body
 function init_snake_body(){
@@ -261,8 +263,8 @@ function main_loop() {
     main_loop();
   }, 1000)
 }
-// TODO: delete starting main loop
+// NOTE: To make it single player before game starts
 // Start main loop
 //main_loop();
 // Generate first food
-gen_food();
+// gen_food();
