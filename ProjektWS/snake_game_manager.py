@@ -21,8 +21,8 @@ class SnakeGameManager(object):
             raise InvalidGameError
     # Gets next game id
     def get_next_game_id(self):
-        # If more than 999 games reset id counter
-        if self.next_game_id > 999:
+        # If more than 254 games reset id counter
+        if self.next_game_id >= 255:
             self.next_game_id = 0
         self.next_game_id += 1
         return self.next_game_id
