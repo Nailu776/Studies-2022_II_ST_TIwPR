@@ -1,7 +1,7 @@
 
 from logg_config import logger
 from snake import Snake
-class InvalidGameError(Exception):
+class InvalidGameIDError(Exception):
     # No game with given id
     pass
     
@@ -18,7 +18,7 @@ class SnakeGameManager(object):
         else:
             # No game with given id
             logger.error("No game with given id.")
-            raise InvalidGameError
+            raise InvalidGameIDError
     # Gets next game id
     def get_next_game_id(self):
         # If more than 254 games reset id counter
@@ -45,7 +45,7 @@ class SnakeGameManager(object):
         else:
             # No game with given ID
             logger.error("No game with given id.")
-            raise InvalidGameError
+            raise InvalidGameIDError
     # End game 
     def end_game(self, game_id):
         if game_id in self.games:
@@ -53,7 +53,7 @@ class SnakeGameManager(object):
         else:
             logger.warn("Game id is not in games list" + game_id)
     # Get opponent Handler TODO:
-    def get_opponent_handler(self, game_id, handler):
+    def get_op_handler(self, game_id, handler):
         game = self.get_game(game_id)
         if handler == game.get("player_a_handler"):
             return game.get("player_b_handler")
@@ -61,7 +61,7 @@ class SnakeGameManager(object):
             return game.get("player_a_handler")
         else:
             logger.error("No game with given id.")
-            raise InvalidGameError
+            raise InvalidGameIDError
     # Record move in game instance TODO:
     def move(self, game_id, move, handler):
         game = self.get_game(game_id)

@@ -56,6 +56,29 @@ var snake_body = [
     y: my_init_pos
   }
 ];
+// Init first player A
+function init_player_a(){
+  my_init_pos = 120;
+  actual_direction = {
+    dx: delta,
+    dy: 0
+  };
+  init_snake_body();
+  // Start main loop
+  main_loop();
+}
+// Init Secound player B
+function init_player_b(){
+  my_init_pos = 640;
+  actual_direction = {
+    dx: -delta,
+    dy: 0
+  };
+  init_snake_body();
+  // Start main loop
+  main_loop();
+}
+// Init snake body
 function init_snake_body(){
   snake_body = [
     // Snake head

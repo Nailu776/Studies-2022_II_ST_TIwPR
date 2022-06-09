@@ -1,14 +1,28 @@
-from tornado.web import RequestHandler
 from tornado.websocket import WebSocketHandler, WebSocketClosedError
+from snake_game_manager import SnakeGameManager, InvalidGameIDError
+from tornado.web import RequestHandler
 from logg_config import logger
-import json
-from snake_game_manager import SnakeGameManager, InvalidGameError
+import struct
 
+
+# Get frontend handler
 class RenderHandler(RequestHandler):
     # Get render index html
     def get(self):
         self.render("snake_game.html")
-
+# Decode action from int code
+def _decode_my_action(short_action):
+    # Python - no switch case 
+    if(short_action == 3): # 11
+        return "move"
+    elif(short_action == 1): # 01
+        return "join"
+    elif(short_action == 0): # 00
+        return "new"
+    elif(short_action == 2): # 10
+        return "resume"
+    else: return "err"
+# Websocket communication handler
 class WSHandler(WebSocketHandler):
     # WebSocketHandler init
     def initialize(self, game_manager, *args, **kwargs):
@@ -23,58 +37,76 @@ class WSHandler(WebSocketHandler):
         logger.info("Connection closed.")
     # On message receive
     def on_message(self, message):
-        logger.info("Got message.")
-        data = json.loads(message)
-        action = data.get("action", "")
+        # Unpack action and decode it
+        unpacked_msg = struct.unpack_from(">h",message,0)
+        action = _decode_my_action(unpacked_msg[0])
+        logger.debug("Got new message with action: '" + action + "'.")
         # What action to perform
-        if action ==  "new":
+        if action == "move":
+            return #TODO: move impl
+        elif action ==  "new":
             # Create a new game and send msg
             self.game_id = self.game_manager.new_game(self)
-            self.send_msg(action="wait for enemy", game_id=self.game_id)
+            # NOTE: msg from server starting with 0 means wait
+            # for opponent, and sends id of game as next arg
+            wait_action = struct.pack(">hh",0,self.game_id)
+            self.send_msg(payload=wait_action)
         elif action == "join":
             # Trying to get the game id
             try:
-                game_id = int(data.get("game_id"))
+                data_payload = struct.unpack_from(">hh",message,0)
+                game_id = data_payload[1]
                 self.game_manager.join_game(game_id, self)
-            except:
+            except InvalidGameIDError:
                 # Bad Id
-                logger.error("Bad game ID.")
+                logger.error("Bad game id: '" + game_id + "'.")
             else:
                 # Joining to the game.
                 self.game_id = game_id
                 # Start both players
-                self.send_msg(action="start_player_b")
-                self.send_msg_to_opponent(action="start_player_a")
+                # 1 -> start game, True->player A, False->player B
+                start_action_a = struct.pack(">h?",1,True)
+                start_action_b = struct.pack(">h?",1,False)
+                self.send_msg(payload=start_action_a)
+                self.send_msg_to_op(op_payload=start_action_b)
+        elif action == "resume":
+            return # TODO: resume
+        elif action == "err":
+            return #err TODO:
+        else: return #big error xd
+    
     # Log info about origin
     def check_origin(self, origin):
-        logger.info("ORIGIN: " + origin)
+        logger.info("Origin: " + origin)
         return True
     # Send msg to opponent    
-    def send_msg_to_opponent(self, action, **data):
+    def send_msg_to_op(self, op_payload):
+        # Check if got game id
         if not self.game_id:
-            logger.error("No game id.")
+            logger.error("Missing game id. in fun 'send_msg_to_op'")
             return
         try:
-            opponent_handler = self.game_manager.get_opponent_handler(self.game_id, self)
-        except InvalidGameError:
-            logger.error("Inalid game id: "+self.game_id+". Cannot send msg: "+ data)
+            # Get opponent handler
+            op_handler = self.game_manager.get_op_handler(self.game_id, self)
+        except InvalidGameIDError:
+            logger.error("Inalid game id: " + self.game_id + ". Cannot send msg.")
         else:
-            if opponent_handler:
-                opponent_handler.send_msg(action, **data)
-    def send_msg(self, action, **data):
-        message = {
-            "action": action,
-            "data": data
-        }
+            if op_handler:
+                op_handler.send_msg(payload=op_payload)
+    # Send msg to client
+    def send_msg(self, payload):
         try:
-            self.write_message(json.dumps(message))
+            self.write_message(message= payload, binary= True)
         except WebSocketClosedError:
-            logger.warning("WebSocketClosedError", "Could Not send Message: " + json.dumps(message))
+            logger.warning("WebSocketClosedError", "Could Not send Message.")
             # Send error info to another player 
-            self.send_msg_to_opponent(action="WebSocketClosedError")
+            # NOTE: 4 means error happend - close websocket connection
+            err_action = struct.pack(">h",4)
+            self.send_msg_to_op(op_payload=err_action)
             # Close connection
             self.close()
 
+# Routes
 routes = [
     ("/", RenderHandler),
     ("/ws", WSHandler, dict(game_manager=SnakeGameManager())),
