@@ -43,6 +43,12 @@ class WSHandler(WebSocketHandler):
         logger.debug("Got new message with action: '" + action + "'.")
         # What action to perform
         if action == "move":
+            data_payload = struct.unpack_from(">hh",message,0)
+            move_index = data_payload[1]
+            logger.debug("Received move index: '" + str(move_index) + "'.")
+            # op_move msg code is 2 and next arg is op move index
+            op_move_msg = struct.pack(">hh",2,move_index)
+            self.send_msg_to_op(op_payload=op_move_msg)
             return #TODO: move impl
         elif action ==  "new":
             # Create a new game and send msg

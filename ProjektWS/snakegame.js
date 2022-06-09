@@ -1,6 +1,7 @@
 //* Snake Game  */
 // TODO: usage Score 
 let score = 0;    
+let op_score = 0;
 // Get canvas board element
 var board = document.getElementById('mySnakeCanvas');
 // Get context
@@ -17,6 +18,11 @@ let food = {
 };
 // Init position
 var my_init_pos = 200;
+var op_init_pos = 600;
+// My snake body - init 2 elems
+var my_snake_body = [];
+// Opponent snake body 
+var op_snake_body = [];
 // Constant values
 // Delta between points
 const delta = 40;
@@ -28,8 +34,8 @@ const my_snake_color = {
   color: 'blue',
   border: 'black'
 };
-// Enemy snake color
-const enemy_snake_color = {
+// Opponent's snake color
+const op_snake_color = {
   color: 'yellow',
   border: 'black'
 };
@@ -38,48 +44,33 @@ const food_color = {
   color: 'red',
   border: 'black'
 };
-// Actual direction
+// My actual direction
 var actual_direction = {
   dx: delta,
   dy: 0
 };
-// Snake init body - 2 elems
-var snake_body = [
-  // Snake head
-  { 
-    x: my_init_pos, 
-    y: my_init_pos
-  },
-  // Secound element of snake body
-  { 
-    x: my_init_pos - delta, 
-    y: my_init_pos
-  }
-];
-// Init first player A
-function init_player_a(){
-  my_init_pos = 120;
-  actual_direction = {
-    dx: delta,
-    dy: 0
-  };
-  init_snake_body();
-  // Start main loop
-  main_loop();
-  gen_food();
+// Calculate index on board with given xy coordinates
+function calculateBoardIndex(x,y){
+  return (calculate_index_xy(x) + (calculate_index_xy(y) * 20));
 }
-// Init Secound player B
-function init_player_b(){
-  my_init_pos = 640;
-  actual_direction = {
-    dx: -delta,
-    dy: 0
-  };
-  init_snake_body();
-  // Start main loop
-  main_loop();
-  gen_food();
+// Calculate basic index by coordinates
+function calculate_index_xy(coordinates){
+  return ((coordinates / 40) - 1);
 }
+// Calculate coordinates from given index
+function calculateCoordinatesXY(index){
+  return ((index + 1) * 40);
+}
+// Calculate x index from board index
+function calculate_xIndex(board_index){
+  return board_index % (board.width / delta);
+}
+// Calculate y index from board index
+function calculate_yIndex(board_index){
+  return Math.floor(board_index / (board.height / delta));
+}
+// Player A is true, player B is false
+var whoami = true;
 // Init snake body
 function init_snake_body(){
   snake_body = [
@@ -95,6 +86,55 @@ function init_snake_body(){
     }
   ];
 }
+// Init opponent snake body
+function init_op_snake_body(){
+  op_snake_body = [
+    // Snake head
+    { 
+      x: op_init_pos, 
+      y: op_init_pos
+    },
+    // Secound element of snake body
+    { 
+      x: op_init_pos - delta, 
+      y: op_init_pos
+    }
+  ];
+}
+// Init first player A
+function init_player_a(){
+  whoami = true;
+  my_init_pos = 120;
+  actual_direction = {
+    dx: delta,
+    dy: 0
+  };
+  init_snake_body();
+  // Start main loop
+  main_loop();
+  gen_food();
+}
+// Init Secound player B
+function init_player_b(){
+  whoami = false;
+  my_init_pos = 640;
+  actual_direction = {
+    dx: -delta,
+    dy: 0
+  };
+  init_snake_body();
+  // Start main loop
+  main_loop();
+  gen_food();
+}
+function init_op_player(){
+  if(whoami){
+    op_init_pos = 640;
+  }else{
+    op_init_pos = 120;
+  }
+  init_op_snake_body();
+}
 // Draw single point
 function drawPoint(point, point_color){
   context.fillStyle = point_color.color;
@@ -106,12 +146,32 @@ function drawPoint(point, point_color){
 function drawSnake(){
   // Make head more visible - adding black background
   drawPoint(snake_body[0],{color:'black', border:'black'});
+  drawPoint(snake_body[0],{color:'black', border:'black'}); // TODO: change alpha on canvas
   // Draw every point (including head again)
   snake_body.forEach(point => drawPoint(point, my_snake_color));
+}
+// Draw opponent's snake
+function drawOpSnake(){
+  // Make head more visible - adding black background
+  drawPoint(op_snake_body[0],{color:'black', border:'black'});
+  drawPoint(op_snake_body[0],{color:'black', border:'black'});
+  // Draw every point (including head again)
+  op_snake_body.forEach(point => drawPoint(point, op_snake_color));
 }
 // Clear whole canvas
 function clearCanvas(){
   context.clearRect(0,0,board.width,board.height);
+}
+// Refresh board
+function refresh_board(){
+  // Clear whole canvas
+  clearCanvas();
+  // Draw cleared food
+  drawFood();
+  // Draw new snake
+  drawSnake();
+  // Draw enemy snake
+  drawOpSnake();
 }
 // Move snake
 function move() 
@@ -136,6 +196,40 @@ function move()
     // Pop tail point - last part of my snake body
     snake_body.pop();
   }
+  move_on_board(
+    calculateBoardIndex(
+      snake_body[0].x,
+      snake_body[0].y
+      )
+    );
+  // Refresh board with new move
+  refresh_board();
+}
+// Opponent move
+function recived_op_move(board_index){
+  // New head coordinates
+  var h_x = calculateCoordinatesXY(calculate_xIndex(board_index));
+  var h_y = calculateCoordinatesXY(calculate_yIndex(board_index));
+  // New snake head - in new postition
+  head = {
+    x: h_x, 
+    y: h_y
+  };
+  // Add head to the beginning
+  op_snake_body.unshift(head);
+  // Check if snake is eating food rn (in new position)
+  const is_eating = 
+    op_snake_body[0].x === food.x && 
+    op_snake_body[0].y === food.y;
+  if (is_eating) {
+        // TODO: remmember to add score usage Increase score 
+        op_score += 1;
+  } else {
+    // Pop tail point - last part of my snake body
+    op_snake_body.pop();
+  }
+  // Refresh board with new move
+  refresh_board();
 }
 // Direction arrow key codes
 // https://css-tricks.com/snippets/javascript/javascript-keycodes/
@@ -209,12 +303,7 @@ function direction_control(event)
   }
   // Move snake on key down press
   move();
-  // Clear whole canvas
-  clearCanvas();
-  // Draw cleared food
-  drawFood();
-  // Draw new snake
-  drawSnake();
+  // TODO:
   // Check if it is end of the game
   // if (is_end()) return;
 }
@@ -251,15 +340,8 @@ function main_loop() {
   if (is_end()) return;
   // Tick every 100 ms
   setTimeout(function onTick() {
-    // Clear whole canvas
-    clearCanvas();
-    // Draw cleared food
-    drawFood();
     // Move snake 
     move();
-    // Draw new snake
-    drawSnake();
-    // Call main again
     main_loop();
   }, 1000)
 }

@@ -109,10 +109,16 @@ function onServerMessage(action, data){
       if(data == true){
         console.log("Start Game as player A.");
         init_player_a();
+        init_op_player();
       } else {
         console.log("Start Game as player B.");
         init_player_b();
+        init_op_player();
       }
+      break;
+    case "op_move":
+      console.log("Opponent moved to board index: '" + data + "'.");
+      recived_op_move(data);
       break;
   }
 }
@@ -132,6 +138,15 @@ function join_game(gameId){
   data_view.setInt16(2,gameId);
   websocket.send(buffer);
   console.log("Sent: 'join'.");
+}
+// MOVE send
+function move_on_board(board_index){
+  var buffer = new ArrayBuffer(4);
+  var data_view = new DataView(buffer);
+  data_view.setInt16(0,code_my_action("move"));
+  data_view.setInt16(2,board_index);
+  websocket.send(buffer);
+  console.log("Sent: 'move'.");
 }
 // Click submit button
 document.getElementById("submit_btn").addEventListener("click", submit_fun);
