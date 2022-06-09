@@ -42,6 +42,18 @@ class SnakeGameManager(object):
         else:
             # No game with given ID
             raise InvalidGameIDError
+    # Check if move is eating food
+    def check_food(self, game_id, board_index):
+        game = self.get_game(game_id)
+        return game["snake"].check_eating_food(board_index)
+    # Get food index
+    def get_food_index_on_board(self, game_id):
+        game = self.get_game(game_id)
+        return game["snake"].get_food_index()
+    # Reset game
+    def reset_game(self, game_id):
+        game = self.get_game(game_id)
+        game["snake"].reset_game()
     # End game 
     def end_game(self, game_id):
         if game_id in self.games:

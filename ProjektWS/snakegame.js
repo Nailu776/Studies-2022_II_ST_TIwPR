@@ -73,7 +73,7 @@ function calculate_yIndex(board_index){
 var whoami = true;
 // Init snake body
 function init_snake_body(){
-  snake_body = [
+  my_snake_body = [
     // Snake head
     { 
       x: my_init_pos, 
@@ -112,7 +112,7 @@ function init_player_a(){
   init_snake_body();
   // Start main loop
   main_loop();
-  gen_food();
+  // gen_food();
 }
 // Init Secound player B
 function init_player_b(){
@@ -125,8 +125,9 @@ function init_player_b(){
   init_snake_body();
   // Start main loop
   main_loop();
-  gen_food();
+  // gen_food();
 }
+// Init opponent player
 function init_op_player(){
   if(whoami){
     op_init_pos = 640;
@@ -145,10 +146,10 @@ function drawPoint(point, point_color){
 // Draw entire snake
 function drawSnake(){
   // Make head more visible - adding black background
-  drawPoint(snake_body[0],{color:'black', border:'black'});
-  drawPoint(snake_body[0],{color:'black', border:'black'}); // TODO: change alpha on canvas
+  drawPoint(my_snake_body[0],{color:'black', border:'black'});
+  drawPoint(my_snake_body[0],{color:'black', border:'black'}); // TODO: change alpha on canvas
   // Draw every point (including head again)
-  snake_body.forEach(point => drawPoint(point, my_snake_color));
+  my_snake_body.forEach(point => drawPoint(point, my_snake_color));
 }
 // Draw opponent's snake
 function drawOpSnake(){
@@ -178,28 +179,28 @@ function move()
 { 
   // New snake head - in new postition
   head = {
-    x: snake_body[0].x + actual_direction.dx, 
-    y: snake_body[0].y + actual_direction.dy
+    x: my_snake_body[0].x + actual_direction.dx, 
+    y: my_snake_body[0].y + actual_direction.dy
   };
   // Add head to the beginning
-  snake_body.unshift(head);
+  my_snake_body.unshift(head);
   // Check if snake is eating food rn (in new position)
   const is_eating = 
-    snake_body[0].x === food.x && 
-    snake_body[0].y === food.y;
+    my_snake_body[0].x === food.x && 
+    my_snake_body[0].y === food.y;
   if (is_eating) {
         // TODO: remmember to add score usage Increase score 
         score += 1;
         // Generate food
-        gen_food();
+        // gen_food();
   } else {
     // Pop tail point - last part of my snake body
-    snake_body.pop();
+    my_snake_body.pop();
   }
   move_on_board(
     calculateBoardIndex(
-      snake_body[0].x,
-      snake_body[0].y
+        my_snake_body[0].x,
+        my_snake_body[0].y
       )
     );
   // Refresh board with new move
@@ -227,6 +228,16 @@ function recived_op_move(board_index){
   } else {
     // Pop tail point - last part of my snake body
     op_snake_body.pop();
+  }
+  // Refresh board with new move
+  refresh_board();
+}
+// Receive food
+function receive_food(board_index){
+  // New food coordinates
+  food = {
+    x: calculateCoordinatesXY(calculate_xIndex(board_index)),
+    y: calculateCoordinatesXY(calculate_yIndex(board_index))
   }
   // Refresh board with new move
   refresh_board();
@@ -307,35 +318,22 @@ function direction_control(event)
   // Check if it is end of the game
   // if (is_end()) return;
 }
-// TODO: Serwer sending end of game after hitting player
-function is_end()
-{ 
-  return false;
-}
-// TODO: server stuff Randomize food location -- 
-function random_food(min, max)
-{  
-   return Math.round((Math.random() * (max-min) + min) / delta) * delta;
-}
-// TODO: server stuff generate food 
-function gen_food() 
-{  
-   food.x = random_food(0, board.width - delta);
-   food.y = random_food(0, board.height - delta);
-   // Check every point of snake body - if it is covering food
-   snake_body.forEach(function is_covering_snake(part) {
-        const covers = part.x == food.x && part.y == food.y;
-        // If randomized food is covering snake - generate new.
-        if (covers) gen_food();
-      });
-}
+// // TODO: Serwer sending end of game after hitting player
+// function is_end()
+// { 
+//   return false;
+// }
+// // TODO: server stuff Randomize food location -- 
+// function random_food(min, max)
+// {  
+//    return Math.round((Math.random() * (max-min) + min) / delta) * delta;
+// }
 // Draw food
 function drawFood(){
   drawPoint({x:food.x, y:food.y,}, food_color);
 }
 // Main loop
 function main_loop() {
-  console.log(snake_body[0].x)
   // Check if it is end of the game
   if (is_end()) return;
   // Tick every 100 ms

@@ -120,6 +120,10 @@ function onServerMessage(action, data){
       console.log("Opponent moved to board index: '" + data + "'.");
       recived_op_move(data);
       break;
+    case "food_move":
+      console.log("Food moved to board index: '" + data + "'.");
+      receive_food(data);
+      break;
   }
 }
 // Start new game

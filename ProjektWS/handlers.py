@@ -49,6 +49,12 @@ class WSHandler(WebSocketHandler):
             # op_move msg code is 2 and next arg is op move index
             op_move_msg = struct.pack(">hh",2,move_index)
             self.send_msg_to_op(op_payload=op_move_msg)
+            if self.game_manager.check_food(self.game_id,move_index):
+                food_index = self.game_manager.get_food_index_on_board(self.game_id)
+                # food move == code 3
+                food_move_msg = struct.pack(">hh",3,food_index)
+                self.send_msg(payload=food_move_msg)
+                self.send_msg_to_op(op_payload=food_move_msg)
             return #TODO: move impl
         elif action ==  "new":
             # Create a new game and send msg
@@ -69,6 +75,14 @@ class WSHandler(WebSocketHandler):
             else:
                 # Joining to the game.
                 self.game_id = game_id
+                # Reset game
+                self.game_manager.reset_game(self.game_id)
+                food_index = self.game_manager.get_food_index_on_board(self.game_id)
+                # Send food
+                # food move == code 3
+                food_move_msg = struct.pack(">hh",3,food_index)
+                self.send_msg(payload=food_move_msg)
+                self.send_msg_to_op(op_payload=food_move_msg)
                 # Start both players
                 # 1 -> start game, True->player A, False->player B
                 start_action_a = struct.pack(">h?",1,True)
