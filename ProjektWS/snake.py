@@ -1,10 +1,4 @@
-from random import randint, random
-from logg_config import logger
-# Invalid moves 
-class InvalidMoveError(Exception):
-    def __init__(self, message):
-        self.message = message
-        super().__init__(message)
+from random import randint
 # Game rules and maintaining state of game
 # Using this module to control food on board
 class Snake(object):

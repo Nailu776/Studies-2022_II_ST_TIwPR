@@ -51,17 +51,20 @@ class WSHandler(WebSocketHandler):
             # op_move msg code is 2 and next arg is op move index
             op_move_msg = struct.pack(">bh",2,move_index)
             self.send_msg_to_op(op_payload=op_move_msg)
-            if self.game_manager.check_food(self.game_id,move_index):
-                food_index = self.game_manager.get_food_index_on_board(self.game_id)
-                # food move == code 3
-                food_move_msg = struct.pack(">bh",3,food_index)
-                self.send_msg(payload=food_move_msg)
-                self.send_msg_to_op(op_payload=food_move_msg)
-            return #TODO: move impl
+            try:
+                if self.game_manager.check_food(self.game_id,move_index):
+                    food_index = self.game_manager.get_food_index_on_board(self.game_id)
+                    # food move == code 3
+                    food_move_msg = struct.pack(">bh",3,food_index)
+                    self.send_msg(payload=food_move_msg)
+                    self.send_msg_to_op(op_payload=food_move_msg)
+            except InvalidGameIDError:
+                # Bad Id
+                logger.error("Bad game id: '" + str(self.game_id) + "'.")
         elif action ==  "new":
             # Create a new game and send msg
             self.game_id = self.game_manager.new_game(self)
-            # NOTE: msg from server starting with 0 means wait
+            # msg from server starting with 0 means wait
             # for opponent, and sends id of game as next arg
             wait_action = struct.pack(">bb",0,self.game_id)
             self.send_msg(payload=wait_action)
@@ -101,9 +104,9 @@ class WSHandler(WebSocketHandler):
                 self.game_manager.end_game(self.game_id)
             except InvalidGameIDError:
                 # Bad Id
-                logger.error("Game is already over: '" + str(game_id) + "'.")
+                logger.error("Game is already over: '" + str(self.game_id) + "'.")
         elif action == "err":
-            return #err TODO:
+            return #err 
         else: return #big error xd
     
     # Log info about origin
@@ -131,7 +134,7 @@ class WSHandler(WebSocketHandler):
         except WebSocketClosedError:
             logger.debug("WebSocketClosedError. Could Not send Message.")
             # Send error info to another player 
-            # NOTE: 5 means error happend - close websocket connection
+            # 5 means error happend - close websocket connection
             err_action = struct.pack(">h",5)
             self.send_msg_to_op(op_payload=err_action)
             # Close connection
