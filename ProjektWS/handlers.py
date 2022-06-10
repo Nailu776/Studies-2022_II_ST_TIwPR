@@ -46,7 +46,7 @@ class WSHandler(WebSocketHandler):
         # What action to perform
         if action == "move":
             data_payload = struct.unpack_from(">bh",message,0)
-            move_index = data_payload[1]
+            move_index = int(data_payload[1])
             logger.debug("Received move index: '" + str(move_index) + "'.")
             # op_move msg code is 2 and next arg is op move index
             op_move_msg = struct.pack(">bh",2,move_index)
@@ -95,7 +95,18 @@ class WSHandler(WebSocketHandler):
                 self.send_msg(payload=start_action_a)
                 self.send_msg_to_op(op_payload=start_action_b)
         elif action == "resume":
-            return # TODO: resume
+            data_payload = struct.unpack_from(">bb?",message,0)
+            resume_game_id = int(data_payload[1])
+            resume_game_player = bool(data_payload[2])
+            logger.debug("Received resume game: '" + str(resume_game_id) + "'.")
+            logger.debug("Received resume player: '" + str(resume_game_player) + "'.")
+            # Trying to get the game id
+            try:
+                self.game_manager.resume_game(resume_game_id, self, resume_game_player)
+                self.game_id = resume_game_id
+            except InvalidGameIDError:
+                # Bad Id
+                logger.error("Bad game id: '" + str(resume_game_id) + "'.")
         elif action == "end":
             # 4 - means that enemy lost 
             end_msg = struct.pack(">b",4)
@@ -106,8 +117,8 @@ class WSHandler(WebSocketHandler):
                 # Bad Id
                 logger.error("Game is already over: '" + str(self.game_id) + "'.")
         elif action == "err":
-            return #err 
-        else: return #big error xd
+            pass #err 
+        else: pass #big error xd
     
     # Log info about origin
     def check_origin(self, origin):

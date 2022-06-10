@@ -43,6 +43,17 @@ class SnakeGameManager(object):
         else:
             # No game with given ID
             raise InvalidGameIDError
+    # Resume game
+    def resume_game(self, game_id, player_handler, player):
+        game = self.get_game(game_id)
+        if game:
+            if player is True:
+                game["player_a_handler"] = player_handler
+            else:
+                game["player_b_handler"] = player_handler
+        else:
+            # No game with given ID
+            raise InvalidGameIDError
     # Check if move is eating food
     def check_food(self, game_id, board_index):
         game = self.get_game(game_id)

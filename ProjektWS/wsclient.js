@@ -1,6 +1,38 @@
 // Init connection on load
 // init();
 window.addEventListener("load", init, false);
+function reload(){
+  // Reload app info
+  if((window.sessionStorage.getItem('gameOn'))){
+    storage_gameOn = window.sessionStorage.getItem('gameOn');
+    if(storage_gameOn == 1){
+      application.gameOn = true;
+    }else{
+      application.gameOn = false;
+    }
+    if(application.gameOn){
+      // Reload game id
+      application.gameId = parseInt(window.sessionStorage.getItem('gameId'));
+      // Reload whoami
+      // whoami = JSON.parse(window.sessionStorage.getItem("whoami"));
+      storage_whoami = window.sessionStorage.getItem('whoami');
+      if(storage_whoami == 1){
+        whoami = true;
+      }else{
+        whoami = false;
+      }
+      // Send resume msg
+      resume_msg(application.gameId);
+      // Reload game      
+      autoreload();
+      // Move listener
+      document.addEventListener("keydown", direction_control);
+      // Start my main loop
+      main_loop();
+      document.getElementById("myGameStatus").innerHTML = "Game status: Refreshed game. Good Luck!";
+    }
+  }
+}
 // Application params
 var application = {
   connected: false,
@@ -19,6 +51,8 @@ function init() {
 // On WebSocket open
 function onOpen(e) {
   console.log("Connected to server.");
+  // Try to reload data from session
+  reload();
   application.connected = true;
 }
 // On WebSocket close
@@ -107,6 +141,7 @@ function onServerMessage(action, data){
   switch (action) {
     case "wait":
       document.getElementById("game_id").value = data
+      application.gameId = data
       document.getElementById("myGameStatus").innerHTML = "Game status: Waiting for opponent...";
       console.log("Waiting for opponent... Game id: '" + data + "'.");
       break;
@@ -115,13 +150,22 @@ function onServerMessage(action, data){
       document.addEventListener("keydown", direction_control);
       document.getElementById("myGameStatus").innerHTML = "Game status: Starting game. Good Luck!";
       application.gameOn = true;
+      if(application.gameId == null){
+        application.gameId = document.getElementById("game_id").value;
+      }
       // data == True means player A
+      // NOTE:
+      // NOTE: Session storage solve 2 players 1 browser
+      window.sessionStorage.setItem('gameOn', 1);
+      window.sessionStorage.setItem('gameId', application.gameId);
       if(data == true){
         console.log("Start Game as player A.");
         init_player_a();
+        resume_msg(application.gameId);
       } else {
         console.log("Start Game as player B.");
         init_player_b();
+        resume_msg(application.gameId);
       }
       break;
     case "op_move":
@@ -134,9 +178,12 @@ function onServerMessage(action, data){
       break;
     case "end":
       winning_action();
+      application.gameOn = false;
       console.log("Enemy lost.");
       document.getElementById("myGameStatus").innerHTML = "Game status: Nice. You win!";
       websocket.close();
+      window.localStorage.clear();
+      window.sessionStorage.clear();
   }
 }
 // Start new game
@@ -174,12 +221,25 @@ function send_ending_msg(){
   console.log("Sent: 'end'.");
   document.getElementById("myGameStatus").innerHTML = "Game status: You lose.";
   websocket.close();
+  window.localStorage.clear();
+  window.sessionStorage.clear();
+}
+// Resume send
+function resume_msg(gameId){
+  var buffer = new ArrayBuffer(3);
+  var data_view = new DataView(buffer);
+  data_view.setInt8(0,code_my_action("resume"));
+  data_view.setInt8(1,gameId);
+  data_view.setInt8(2,whoami);
+  websocket.send(buffer);
+  console.log("Sent: 'resume'.");
 }
 // Click submit button
 document.getElementById("submit_btn").addEventListener("click", submit_fun);
 function submit_fun(){
   if(application.gameOn){
     // abort
+    end_game();
   }
   else{
     // Check if connected

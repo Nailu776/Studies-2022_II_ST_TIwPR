@@ -95,6 +95,7 @@ function init_my_snake_body(){
       // Secound element of snake body
       my_init_pos + DIRECTION_LEFT
     ];
+    window.sessionStorage.setItem("playerASnakeBody", JSON.stringify(my_snake_body));
   }else{
     my_snake_body = [
       // Snake head
@@ -102,6 +103,7 @@ function init_my_snake_body(){
       // Secound element of snake body
       my_init_pos + DIRECTION_RIGHT
     ];
+    window.sessionStorage.setItem("playerBSnakeBody", JSON.stringify(my_snake_body));
   }
 }
 // Init opponent snake body
@@ -121,6 +123,7 @@ function init_op_snake_body(){
       op_init_pos + DIRECTION_RIGHT
     ];
   }
+  window.sessionStorage.setItem("opSnakeBody", JSON.stringify(op_snake_body));
 }
 // Init first player A
 function init_player_a(){
@@ -184,8 +187,52 @@ function drawSnake(snake_body, snake_color){
 function clearCanvas(){
   context.clearRect(0,0,board.width,board.height);
 }
+// Save game state
+function autosave(){
+  // Save my snake body to session Storage 
+  if(whoami){
+    // Save whoami
+    window.sessionStorage.setItem('whoami', 1);
+    window.sessionStorage.setItem("playerASnakeBody", JSON.stringify(my_snake_body));
+  }else{
+    // Save whoami
+    window.sessionStorage.setItem('whoami', 0);
+    window.sessionStorage.setItem("playerBSnakeBody", JSON.stringify(my_snake_body));
+  }
+  // Save op_snake_body
+  window.sessionStorage.setItem("opSnakeBody", JSON.stringify(op_snake_body));
+  // Save food
+  window.sessionStorage.setItem('food', food_index);
+  // Save score
+  window.sessionStorage.setItem('score', score);
+  window.sessionStorage.setItem('op_score', op_score);
+  // Save actual direction
+  window.sessionStorage.setItem('actual_direction', actual_direction);
+}
+// Reload game state
+function autoreload(){
+  if(application.gameOn){
+    // Reload my snake body to session Storage 
+    if(whoami){
+      my_snake_body = JSON.parse(window.sessionStorage.getItem("playerASnakeBody"));
+    }else{
+      my_snake_body = JSON.parse(window.sessionStorage.getItem("playerBSnakeBody"));
+    }
+    // Reload op_snake_body
+    op_snake_body = JSON.parse(window.sessionStorage.getItem("opSnakeBody"));
+    // Reload food
+    food_index = parseInt(window.sessionStorage.getItem('food'));
+    // Reload score
+    score = parseInt(window.sessionStorage.getItem('score'));
+    op_score = parseInt(window.sessionStorage.getItem('op_score'));
+    // Reload actual direction
+    actual_direction = parseInt(window.sessionStorage.getItem('actual_direction'));
+  }
+}
 // Refresh board - clear Canvas and draw everything 
 function refresh_board(){
+  // Save game state
+  autosave();
   // Clear whole canvas
   clearCanvas();
   // Draw cleared food
