@@ -20,6 +20,7 @@ class SnakeGameManager(object):
     # Gets next game id
     def get_next_game_id(self):
         # If more than 254 games reset id counter
+        # TODO: MAKE IT SAFE
         if self.next_game_id >= 255:
             self.next_game_id = 0
         self.next_game_id += 1
