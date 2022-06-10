@@ -1,3 +1,4 @@
+from logg_config import logger
 from snake import Snake
 class InvalidGameIDError(Exception):
     # No game with given id
@@ -30,7 +31,7 @@ class SnakeGameManager(object):
             "player_a_handler": player_a_handler
         }
         game = self.get_game(game_id)
-        #Snake  TODO: 
+        #Snake game
         game["snake"] = Snake()
         return game_id
     # Join game
@@ -58,9 +59,10 @@ class SnakeGameManager(object):
     def end_game(self, game_id):
         if game_id in self.games:
             del self.games[game_id]
+            logger.debug("Games:"+str(self.games))
         else:
             raise InvalidGameIDError
-    # Get opponent Handler TODO:
+    # Get opponent Handler
     def get_op_handler(self, game_id, handler):
         game = self.get_game(game_id)
         if handler == game.get("player_a_handler"):
@@ -69,21 +71,8 @@ class SnakeGameManager(object):
             return game.get("player_a_handler")
         else:
             raise InvalidGameIDError
-    # Record move in game instance TODO:
-    def move(self, game_id, move, handler):
-        game = self.get_game(game_id)
-        if handler == game.get("player_a_handler"):
-            game["snake"].player_move(move)
-        elif handler == game.get("player_b_handler"):
-            game["snake"].player_move(move)
     # Abort game TODO:
     def abort_game(self, game_id):
         game = self.get_game(game_id)
         snake = game["snake"]
         snake.abort_game()
-    # Is game ended TODO:
-    def has_game_ended(self, game_id):
-        return False
-    # Get game result TODO:
-    def get_game_result(self, game_id, handler):
-        pass

@@ -1,5 +1,4 @@
 //* Snake Game  */
-// TODO: usage Score 
 let score = 0;    
 let op_score = 0;
 let still_playing = true;
@@ -215,8 +214,8 @@ function move()
   // Check if snake is eating food rn (in new position)
   const is_eating =  my_snake_body[0] === food_index;
   if (is_eating) {
-        // TODO: remmember to add score usage Increase score 
         score += 1;
+        document.getElementById("myScore").innerHTML = "Your score: " + score;
   } else {
     // Pop tail point - last part of my snake body
     my_snake_body.pop();
@@ -235,8 +234,8 @@ function recived_op_move(board_index){
   // Check if snake is eating food rn (in new position)
   const is_eating =  op_snake_body[0] === food_index;
   if (is_eating) {
-        // TODO: remmember to add score usage Increase score 
         op_score += 1;
+        document.getElementById("myOpScore").innerHTML = "Opponent's score: " + op_score;
   } else {
     // Pop tail point - last part of my snake body
     op_snake_body.pop();
@@ -264,7 +263,12 @@ function end_game(){
   still_playing = false;
   document.removeEventListener("keydown", direction_control); 
   document.addEventListener("keydown", game_over);
-  // TODO: Send info about losing game
+  send_ending_msg();
+}
+function winning_action(){
+  still_playing = false;
+  document.removeEventListener("keydown", direction_control); 
+  document.addEventListener("keydown", game_over);
 }
 // Make one tick of game
 function game_tick(){
@@ -322,10 +326,10 @@ function direction_control(event)
 function main_loop() {
   // Tick every 100 ms
   setTimeout(function onTick() {
-    game_tick();
     if(!still_playing)
       // End main loop
       return;
+    game_tick();
     main_loop();
   }, GAME_TICK)
 }

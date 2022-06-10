@@ -33,18 +33,21 @@ function onError(e) {
 // Code action sending to server 
 function code_my_action(str_action){
   switch (str_action){
+    case "move":
+      // Sending my move means sending 3
+      return 3
     case "new":
       // Start new game means sending 0
       return 0 
     case "join":
       // Join existing game means sending 1
       return 1
-    case "move":
-      // Sending my move means sending 3
-      return 3
     case "resume":
       // Sending resume action means sending 2
       return 2
+    case "end":
+      // Sending ending game msg (give up or lost)
+      return 4;
   }
 }
 // Decode action
@@ -59,6 +62,8 @@ function decode_my_action(coded_action){
     case 3:
       return "food_move"
     case 4: 
+      return "end"
+    case 5: 
       return "err"
   }
 }
@@ -67,17 +72,20 @@ function decode_eventual_data(coded_action, data_view){
   switch (coded_action){
     case 0:
       // Decode id of your game if you wait
-      return data_view.getInt16(2)
+      return data_view.getInt8(1)
     case 1:
       // Decode player a or player b
-      return data_view.getUint8(2)
+      return data_view.getUint8(1)
     case 2:
       // Decode index of opp move
-      return data_view.getInt16(2)
+      return data_view.getInt16(1)
     case 3:
       // Decode index of food
-      return data_view.getInt16(2)
+      return data_view.getInt16(1)
     case 4: 
+      // Decode that enemy lost or gave up game
+      return null
+    case 5:
       // Decode error
       return null
   }
@@ -86,7 +94,7 @@ function decode_eventual_data(coded_action, data_view){
 function onMessage(e) {
   // Get data from binary data
   var data_view = new DataView(e.data,0);
-  var coded_action = data_view.getInt16(0)
+  var coded_action = data_view.getInt8(0)
   var action = decode_my_action(coded_action);
   var data = decode_eventual_data(coded_action, data_view);
   // Log recived message
@@ -124,33 +132,48 @@ function onServerMessage(action, data){
       console.log("Food moved to board index: '" + data + "'.");
       receive_food(data);
       break;
+    case "end":
+      winning_action();
+      console.log("Enemy lost.");
+      document.getElementById("myGameStatus").innerHTML = "Game status: Nice. You win!";
+      websocket.close();
   }
 }
 // Start new game
 function start_game(){
-  var buffer = new ArrayBuffer(2);
+  var buffer = new ArrayBuffer(1);
   var data_view = new DataView(buffer);
-  data_view.setInt16(0,0);
+  data_view.setInt8(0,0);
   websocket.send(buffer);
   console.log("Sent: 'new'.");
 }
 // Joing game
 function join_game(gameId){
-  var buffer = new ArrayBuffer(4);
+  var buffer = new ArrayBuffer(3);
   var data_view = new DataView(buffer);
-  data_view.setInt16(0,code_my_action("join"));
-  data_view.setInt16(2,gameId);
+  data_view.setInt8(0,code_my_action("join"));
+  data_view.setInt16(1,gameId);
   websocket.send(buffer);
   console.log("Sent: 'join'.");
 }
 // MOVE send
 function move_on_board(board_index){
-  var buffer = new ArrayBuffer(4);
+  var buffer = new ArrayBuffer(3);
   var data_view = new DataView(buffer);
-  data_view.setInt16(0,code_my_action("move"));
-  data_view.setInt16(2,board_index);
+  data_view.setInt8(0,code_my_action("move"));
+  data_view.setInt16(1,board_index);
   websocket.send(buffer);
   console.log("Sent: 'move'.");
+}
+// END send 
+function send_ending_msg(){
+  var buffer = new ArrayBuffer(1);
+  var data_view = new DataView(buffer);
+  data_view.setInt8(0,code_my_action("end"));
+  websocket.send(buffer);
+  console.log("Sent: 'end'.");
+  document.getElementById("myGameStatus").innerHTML = "Game status: You lose.";
+  websocket.close();
 }
 // Click submit button
 document.getElementById("submit_btn").addEventListener("click", submit_fun);
