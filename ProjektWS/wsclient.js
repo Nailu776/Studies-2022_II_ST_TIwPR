@@ -99,21 +99,21 @@ function onServerMessage(action, data){
   switch (action) {
     case "wait":
       document.getElementById("game_id").value = data
+      document.getElementById("myGameStatus").innerHTML = "Game status: Waiting for opponent...";
       console.log("Waiting for opponent... Game id: '" + data + "'.");
       break;
     case "start":
       // Move listener
       document.addEventListener("keydown", direction_control);
+      document.getElementById("myGameStatus").innerHTML = "Game status: Starting game. Good Luck!";
       application.gameOn = true;
       // data == True means player A
       if(data == true){
         console.log("Start Game as player A.");
         init_player_a();
-        init_op_player();
       } else {
         console.log("Start Game as player B.");
         init_player_b();
-        init_op_player();
       }
       break;
     case "op_move":
@@ -168,10 +168,12 @@ function submit_fun(){
       document.getElementById("game_id").value;
     if(gameId){
       // If there is id try to join game
+      document.getElementById("myGameStatus").innerHTML = "Game status: Trying to join game";
       join_game(gameId);
     }
     else{
       // Else start new one
+      document.getElementById("myGameStatus").innerHTML = "Game status: Trying to start a new game";
       start_game();
     }
   }

@@ -118,7 +118,7 @@ class WSHandler(WebSocketHandler):
         try:
             self.write_message(message= payload, binary= True)
         except WebSocketClosedError:
-            logger.warning("WebSocketClosedError", "Could Not send Message.")
+            logger.debug("WebSocketClosedError. Could Not send Message.")
             # Send error info to another player 
             # NOTE: 4 means error happend - close websocket connection
             err_action = struct.pack(">h",4)
